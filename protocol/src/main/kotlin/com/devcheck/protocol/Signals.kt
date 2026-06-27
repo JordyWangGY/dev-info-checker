@@ -42,6 +42,8 @@ object Signals {
     const val VSPACE_FOREIGN_APK = "vspace.maps_foreign_apk"
     const val VSPACE_CLASSLOADER = "vspace.classloader"   // 沙盒框架类加载器/路径特征
     const val VSPACE_PROCESS_NAME = "vspace.process_name" // 进程名 base != 包名
+    const val VSPACE_SANDBOX = "vspace.sandbox"           // app 自有目录被沙盒重定向(特别标记)
+    const val VSPACE_FOREIGN_DIR = "vspace.foreign_dir"   // 可列出他人 data 目录(非隔离环境)
 
     // —— Tamper ——
     const val TAMPER_SIGNATURE = "tamper.signature"
@@ -59,6 +61,7 @@ object Signals {
     const val FP_WIDEVINE = "fp.widevine"       // Widevine DRM 安全级别 L1/L3
     const val FP_WIFI = "fp.wifi_bssid"         // 连接 WiFi BSSID（需定位权限）
     const val FP_CELL = "fp.cell_info"          // 基站信息（需定位权限）
+    const val STORAGE_SCOPE = "storage.scope"   // app 可达文件夹范围(自有目录+系统/共享目录)
 
     // —— Environment（运行环境完整性）——
     const val ENV_DEVELOPER_OPTIONS = "env.developer_options"

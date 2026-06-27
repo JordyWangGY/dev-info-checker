@@ -41,6 +41,8 @@ object Catalog {
         Point(Signals.VSPACE_PROCESS_NAME, Category.VSPACE, "进程名 ≠ 包名"),
         Point(Signals.VSPACE_CLASSLOADER, Category.VSPACE, "沙盒类加载器 / 路径"),
         Point(Signals.VSPACE_FOREIGN_APK, Category.VSPACE, "映射他包 apk"),
+        Point(Signals.VSPACE_SANDBOX, Category.VSPACE, "app 目录被沙盒重定向"),
+        Point(Signals.VSPACE_FOREIGN_DIR, Category.VSPACE, "可列出他人 data 目录"),
         // Tamper
         Point(Signals.TAMPER_SIGNATURE, Category.TAMPER, "签名校验"),
         Point(Signals.TAMPER_INSTALLER, Category.TAMPER, "安装来源"),
@@ -53,6 +55,7 @@ object Catalog {
         Point(Signals.FP_WIDEVINE, Category.FINGERPRINT, "Widevine 安全级别"),
         Point(Signals.FP_WIFI, Category.FINGERPRINT, "WiFi BSSID (需定位权限)"),
         Point(Signals.FP_CELL, Category.FINGERPRINT, "基站信息 (需定位权限)"),
+        Point(Signals.STORAGE_SCOPE, Category.FINGERPRINT, "可达文件夹范围扫描"),
         // Environment
         Point(Signals.ENV_DEVELOPER_OPTIONS, Category.ENVIRONMENT, "开发者选项"),
         Point(Signals.ENV_ACCESSIBILITY, Category.ENVIRONMENT, "无障碍服务"),

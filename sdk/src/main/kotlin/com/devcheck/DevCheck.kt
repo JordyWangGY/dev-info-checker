@@ -15,6 +15,7 @@ import com.devcheck.detector.NetworkDetector
 import com.devcheck.detector.RadioDetector
 import com.devcheck.detector.RootDetector
 import com.devcheck.detector.SensorDetector
+import com.devcheck.detector.StorageScanDetector
 import com.devcheck.detector.TamperDetector
 import com.devcheck.detector.VirtualSpaceDetector
 import com.devcheck.nativebridge.NativeProbe
@@ -53,6 +54,7 @@ object DevCheck {
             DebugDetector(),
             HookDetector(),
             VirtualSpaceDetector(),
+            StorageScanDetector(),
             TamperDetector(),
             NetworkDetector(),
             DeviceFingerprintDetector(),
