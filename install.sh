@@ -2,7 +2,11 @@
 #
 # DevCheck —— 一键构建 / 安装 / 运行脚本
 #
-#   ./install.sh [命令]
+#   ./install.sh [命令] [设备序列号]
+#
+#   多设备时指定其一：
+#     ./install.sh run <serial>            或   ANDROID_SERIAL=<serial> ./install.sh run
+#     ./install.sh devices                 列出已连接设备
 #
 #   命令：
 #     run        (默认) 构建 → 安装 → 启动 → 打印一次检测报告
@@ -32,6 +36,10 @@ APK="$ROOT/sample/build/outputs/apk/debug/sample-debug.apk"
 PKG="com.devcheck.sample"
 ACT="$PKG/.MainActivity"
 
+CMD="${1:-run}"
+# 指定目标设备：第二个参数 或 ANDROID_SERIAL 环境变量（adb 原生识别该变量）
+[ -n "${2:-}" ] && export ANDROID_SERIAL="$2"
+
 c_info=$'\033[1;36m'; c_ok=$'\033[1;32m'; c_err=$'\033[1;31m'; c_off=$'\033[0m'
 log()  { printf '%s[devcheck]%s %s\n' "$c_info" "$c_off" "$*"; }
 ok()   { printf '%s[devcheck]%s %s\n' "$c_ok"   "$c_off" "$*"; }
@@ -43,10 +51,27 @@ check_jdk() {
 
 require_device() {
     [ -x "$ADB" ] || die "找不到 adb：$ADB"
-    local n
-    n="$("$ADB" devices | awk 'NR>1 && $2=="device"' | wc -l | tr -d ' ')"
-    [ "$n" -ge 1 ] || die "没有已连接的设备/模拟器。请先启动模拟器或连接真机后重试（adb devices 检查）。"
-    [ "$n" -le 1 ] || log "检测到多台设备，将使用 ANDROID_SERIAL=${ANDROID_SERIAL:-默认}。"
+    if [ -n "${ANDROID_SERIAL:-}" ]; then
+        "$ADB" -s "$ANDROID_SERIAL" get-state >/dev/null 2>&1 \
+            || die "指定设备 '$ANDROID_SERIAL' 未连接。用 ./install.sh devices 查看可用设备。"
+        log "目标设备：$ANDROID_SERIAL"
+        return
+    fi
+    local list n
+    list="$("$ADB" devices | awk 'NR>1 && $2=="device"{print $1}')"
+    n="$(printf '%s\n' "$list" | grep -c . || true)"
+    [ "$n" -ge 1 ] || die "没有已连接的设备/模拟器。"
+    if [ "$n" -gt 1 ]; then
+        die "检测到多台设备，请指定其一：
+  ./install.sh $CMD <serial>      或   ANDROID_SERIAL=<serial> ./install.sh $CMD
+当前设备：
+$list"
+    fi
+}
+
+do_devices() {
+    [ -x "$ADB" ] || die "找不到 adb：$ADB"
+    "$ADB" devices -l
 }
 
 do_build() {
@@ -130,6 +155,7 @@ case "${1:-run}" in
     test)       do_test ;;
     logcat)     do_logcat ;;
     export)     do_export ;;
+    devices)    do_devices ;;
     uninstall)  do_uninstall ;;
     -h|--help|help) sed -n '2,30p' "$0" | sed 's/^#//' ;;
     *) die "未知命令：$1（试试 ./install.sh help）" ;;
