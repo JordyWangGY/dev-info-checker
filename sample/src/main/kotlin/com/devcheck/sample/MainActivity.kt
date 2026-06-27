@@ -23,6 +23,7 @@ import com.devcheck.DevCheckConfig
 import com.devcheck.protocol.Blockers
 import com.devcheck.protocol.Catalog
 import com.devcheck.protocol.RiskReport
+import com.devcheck.protocol.Scoring
 import com.devcheck.protocol.Severity
 import com.devcheck.protocol.Verdict
 import com.devcheck.protocol.toJson
@@ -141,7 +142,8 @@ class MainActivity : AppCompatActivity() {
         })
         inner.addView(progress(r.score, 100, color))
         inner.addView(TextView(this).apply {
-            text = "耗时 ${r.elapsedMs}ms · 原生核心 ${if (r.nativeAvailable) "✓" else "✗"} · 检测点 ${Catalog.ALL.size}"
+            text = "风险分越低越好（0=干净）· 命中阻断点即判不可信\n" +
+                "耗时 ${r.elapsedMs}ms · 原生核心 ${if (r.nativeAvailable) "✓" else "✗"} · 检测点 ${Catalog.ALL.size}"
             textSize = 12f; setTextColor(sub); setPadding(0, dp(8), 0, 0)
         })
         content.addView(card)
@@ -175,16 +177,50 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderScore(r: RiskReport) {
         val (label, color) = verdictStyle(r.verdict)
-        content.addView(simpleCard(color, "加权风险分 ${r.score}/100", "裁决 $label（仅统计非阻断信号）"))
-        if (r.categoryScores.isEmpty()) {
-            content.addView(simpleCard(green, "各类别得分 0", "无可计分的软性信号"))
-            return
+        content.addView(
+            simpleCard(
+                color, "风险分 ${r.score}/100　（越低越好，0=干净）",
+                "裁决：$label\n" +
+                    "算法：风险 = Σ 各类(命中权重 × 置信)，单类封顶 $CATEGORY_CAP、总分封顶 100。\n" +
+                    "权重：INFO 0 · LOW 5 · MEDIUM 15 · HIGH 35 · CRITICAL 60。\n" +
+                    "「通过/已采集」不加分；命中阻断点 → 直接判 COMPROMISED（不计入分数）。",
+            ),
+        )
+
+        val scored = r.signals.filterNot { Scoring.isBlocker(it) || it.severity == Severity.INFO }
+        if (scored.isEmpty()) {
+            content.addView(simpleCard(green, "计分项 0", "没有可计分的命中信号，风险分 = 0"))
+        } else {
+            val byCat = scored.groupBy { it.category }
+                .map { (c, list) ->
+                    val subtotal = minOf(
+                        CATEGORY_CAP,
+                        list.sumOf { (Scoring.weight(it.severity) * it.confidence).toDouble() }.toInt(),
+                    )
+                    Triple(c, list, subtotal)
+                }
+                .sortedByDescending { it.third }
+            for ((cat, list, subtotal) in byCat) {
+                val c = scoreColor(subtotal)
+                val inner = titledCard(c, "${cat.name}　小计 $subtotal / $CATEGORY_CAP")
+                inner.addView(progress(subtotal, CATEGORY_CAP, c))
+                for (s in list.sortedByDescending { Scoring.weight(it.severity) }) {
+                    val pts = Scoring.weight(s.severity) * s.confidence
+                    inner.addView(TextView(this).apply {
+                        text = "  ${s.id}　${s.severity}×${s.confidence} = +${"%.1f".format(pts)}"
+                        textSize = 12f; typeface = Typeface.MONOSPACE; setTextColor(ink); setPadding(0, dp(5), 0, 0)
+                    })
+                }
+            }
         }
-        for ((cat, s) in r.categoryScores.entries.sortedByDescending { it.value }) {
-            val c = scoreColor(s)
-            val inner = titledCard(c, cat.name)
-            inner.addView(TextView(this).apply { text = "$s / $CATEGORY_CAP"; textSize = 13f; setTextColor(sub); setPadding(0, dp(2), 0, dp(6)) })
-            inner.addView(progress(s, CATEGORY_CAP, c))
+
+        if (r.blockingSignals.isNotEmpty()) {
+            content.addView(
+                simpleCard(
+                    red, "阻断点 ${r.blockingSignals.size}（不计入分数，直接判不可信）",
+                    r.blockingSignals.joinToString("\n") { "‼ ${it.id}" },
+                ),
+            )
         }
     }
 
