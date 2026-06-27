@@ -8,4 +8,4 @@ captures/
 .externalNativeBuild/
 .cxx/
 /scratchpad/
-/devcheck-report.json
+/devcheck-report*.json
