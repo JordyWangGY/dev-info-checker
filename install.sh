@@ -11,6 +11,7 @@
 #     aar        构建可集成的 SDK release AAR
 #     test       运行 protocol 层打分/阻断点单元测试
 #     logcat     持续跟踪检测日志 (tag: DevCheck)
+#     export     通过 adb 触发检测并导出 JSON 结果文档
 #     uninstall  卸载示例 App
 #
 #   环境变量（可覆盖默认值）：
@@ -102,6 +103,25 @@ do_uninstall() {
     "$ADB" uninstall "$PKG" && ok "已卸载：$PKG"
 }
 
+do_export() {
+    require_device
+    local dst="$ROOT/devcheck-report.json"
+    log "触发导出广播 ..."
+    "$ADB" shell am broadcast -n "$PKG/com.devcheck.export.ExportReceiver" >/dev/null
+    log "等待检测完成 ..."
+    sleep 3
+    if "$ADB" exec-out run-as "$PKG" cat files/devcheck-report.json > "$dst" 2>/dev/null && [ -s "$dst" ]; then
+        ok "已导出 → $dst"
+    elif "$ADB" pull "/sdcard/Android/data/$PKG/files/devcheck-report.json" "$dst" >/dev/null 2>&1 && [ -s "$dst" ]; then
+        ok "已导出 → $dst"
+    else
+        die "读取失败。改用：adb logcat -s DevCheck:I（看 DEVCHECK_REPORT_BEGIN/END 之间的 JSON）"
+    fi
+    echo "----------------------------------------------------------------------"
+    cat "$dst"
+    echo "----------------------------------------------------------------------"
+}
+
 case "${1:-run}" in
     run)        do_run ;;
     build)      do_build ;;
@@ -109,6 +129,7 @@ case "${1:-run}" in
     aar)        do_aar ;;
     test)       do_test ;;
     logcat)     do_logcat ;;
+    export)     do_export ;;
     uninstall)  do_uninstall ;;
     -h|--help|help) sed -n '2,30p' "$0" | sed 's/^#//' ;;
     *) die "未知命令：$1（试试 ./install.sh help）" ;;

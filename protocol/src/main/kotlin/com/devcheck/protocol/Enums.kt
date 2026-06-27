@@ -14,6 +14,7 @@ enum class Category {
     NETWORK,     // VPN / 代理
     FINGERPRINT, // 设备指纹与自洽性
     ATTEST,      // 硬件背书（Play Integrity / Key Attestation）
+    ENVIRONMENT, // 运行环境完整性（开发者选项 / 无障碍 / mock 定位 / 自动化）
     RUNTIME,     // 检测框架自身的运行时状态（如 native 不可用、detector 异常）
 }
 

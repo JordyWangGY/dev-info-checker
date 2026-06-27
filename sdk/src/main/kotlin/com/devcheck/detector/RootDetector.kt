@@ -28,7 +28,13 @@ internal class RootDetector : Detector {
     private val rootPackages = Secrets.list(
         "OTU3dC41KjA1MjQtL3Q3Oz0zKTE=", "Py90OTI7MzQ8Myg/dCkvKj8oKS8=",
         "OTU3dDE1LykyMzE+Ly4uO3QpLyo/KC8pPyg=", "OTU3dDQ1KTIvPDUvdDs0Pig1Mz50KS8=",
-        "Nz90LT8zKTIvdDE/KDQ/Nikv",
+        "Nz90LT8zKTIvdDE/KDQ/Nikv", "Nz90ODc7InQ7KjsuOTI=", // me.bmax.apatch
+    )
+
+    // KernelSU / APatch 内核级提权特征路径（混淆存储）
+    private val kernelSuPaths = Secrets.list(
+        "dT47Ljt1Oz44dTEpLw==", "dT47Ljt1Oz44dTEpLz4=", "dT47Ljt1Oz44dTEpL3U3NT4vNj8p",
+        "dT47Ljt1Oz44dTsq", "dT47Ljt1Oz44dTsqPg==", "dT47Ljt1Oz44dTsqdTc1Pi82Pyk=",
     )
 
     override suspend fun detect(ctx: DetectContext): List<Signal> = withContext(Dispatchers.IO) {
@@ -46,6 +52,11 @@ internal class RootDetector : Detector {
         val magiskHits = magiskPaths.filter { exists(ctx, it) }
         if (magiskHits.isNotEmpty()) {
             out += sig(Signals.ROOT_MAGISK, Severity.HIGH, 0.9f, mapOf("paths" to magiskHits.joinToString()))
+        }
+
+        val ksuHits = kernelSuPaths.filter { exists(ctx, it) }
+        if (ksuHits.isNotEmpty()) {
+            out += sig(Signals.ROOT_KERNELSU, Severity.HIGH, 0.9f, mapOf("paths" to ksuHits.joinToString()))
         }
 
         val pathSu = (System.getenv("PATH") ?: "").split(":")

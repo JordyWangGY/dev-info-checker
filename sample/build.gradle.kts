@@ -34,4 +34,5 @@ kotlin {
 dependencies {
     implementation(project(":sdk"))
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.google.material)
 }

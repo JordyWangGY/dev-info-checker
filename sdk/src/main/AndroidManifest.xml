@@ -5,4 +5,11 @@
     <!-- 阶段二上报证据包时使用 -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <application>
+        <!-- adb 导出检测结果：仅在 debuggable 应用中真正执行（见 ExportReceiver 内的守卫） -->
+        <receiver
+            android:name="com.devcheck.export.ExportReceiver"
+            android:exported="true" />
+    </application>
+
 </manifest>

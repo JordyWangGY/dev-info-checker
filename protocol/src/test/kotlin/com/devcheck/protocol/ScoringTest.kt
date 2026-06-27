@@ -26,8 +26,8 @@ class ScoringTest {
     @Test
     fun nativeFridaMapsTriggersBlocker() {
         val r = Scoring.evaluate(listOf(sig(Signals.HOOK_FRIDA_MAPS, Category.HOOK, Severity.HIGH, Source.NATIVE)))
-        assertEquals(Verdict.COMPROMISED, r.verdict)
-        assertEquals(100, r.score)
+        assertEquals(Verdict.COMPROMISED, r.verdict)   // 阻断点硬覆盖裁决
+        assertEquals(0, r.score)                       // 但评分与阻断点分开：阻断信号不计入分数
         assertEquals(1, r.blockingSignals.size)
     }
 

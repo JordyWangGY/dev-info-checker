@@ -38,20 +38,21 @@ object Scoring {
     fun evaluate(signals: List<Signal>, evaluated: Boolean = true): Result {
         if (!evaluated) return Result(0, Verdict.UNKNOWN, emptyMap(), emptyList())
 
+        // 打分与阻断点「分开统计」：
+        //  - 评分(score/categoryScores) 只累计「非阻断」信号，反映软性加权风险，不再被阻断点强行拉到 100；
+        //  - 阻断点(blockingSignals) 单独成列，命中即把 verdict 硬覆盖为 COMPROMISED（与分数高低无关）。
+        val blockers = signals.filter { isBlocker(it) }
         val perCat = signals
+            .filterNot { isBlocker(it) }
             .groupBy { it.category }
             .mapValues { (_, list) ->
                 val sum = list.sumOf { (weight(it.severity) * it.confidence).toDouble() }
                 minOf(CATEGORY_CAP.toDouble(), sum).toInt()
             }
             .filterValues { it > 0 }
-
-        val blockers = signals.filter { isBlocker(it) }
-        if (blockers.isNotEmpty()) {
-            return Result(MAX_SCORE, Verdict.COMPROMISED, perCat, blockers)
-        }
         val total = minOf(MAX_SCORE, perCat.values.sum())
-        return Result(total, verdict(total), perCat, emptyList())
+        val verdict = if (blockers.isNotEmpty()) Verdict.COMPROMISED else verdict(total)
+        return Result(total, verdict, perCat, blockers)
     }
 
     fun verdict(score: Int): Verdict = when {

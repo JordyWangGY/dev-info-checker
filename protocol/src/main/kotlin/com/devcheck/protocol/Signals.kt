@@ -12,6 +12,7 @@ object Signals {
     const val EMULATOR_GPU = "emulator.gpu_swiftshader"
     const val EMULATOR_NO_SENSORS = "emulator.no_sensors"
     const val EMULATOR_CPU_ARCH = "emulator.cpu_x86_on_arm"
+    const val EMULATOR_SENSOR_STATIC = "emulator.sensor_static" // 传感器零方差/恒定值=伪造
 
     // —— Root ——
     const val ROOT_SU_BINARY = "root.su_binary"
@@ -20,6 +21,7 @@ object Signals {
     const val ROOT_RW_SYSTEM = "root.rw_system"
     const val ROOT_DANGEROUS_PROPS = "root.dangerous_props"
     const val ROOT_PACKAGES = "root.packages"
+    const val ROOT_KERNELSU = "root.kernelsu" // KernelSU / APatch 等内核级提权
 
     // —— Hook ——
     const val HOOK_XPOSED = "hook.xposed"
@@ -38,6 +40,8 @@ object Signals {
     // —— VirtualSpace ——
     const val VSPACE_DATA_PATH = "vspace.data_path"
     const val VSPACE_FOREIGN_APK = "vspace.maps_foreign_apk"
+    const val VSPACE_CLASSLOADER = "vspace.classloader"   // 沙盒框架类加载器/路径特征
+    const val VSPACE_PROCESS_NAME = "vspace.process_name" // 进程名 base != 包名
 
     // —— Tamper ——
     const val TAMPER_SIGNATURE = "tamper.signature"
@@ -48,9 +52,20 @@ object Signals {
     const val NETWORK_VPN = "network.vpn"
     const val NETWORK_PROXY = "network.proxy"
 
-    // —— Fingerprint ——
+    // —— Fingerprint（采集为主，自洽/一致性判定在服务端）——
     const val FP_STABLE_ID = "fp.stable_id"
     const val FP_INCONSISTENCY = "fp.inconsistency"
+    const val FP_ATTRIBUTES = "fp.attributes"   // 全面属性集（屏幕/CPU/RAM/SOC/ABI/locale/时区/内核…）
+    const val FP_WIDEVINE = "fp.widevine"       // Widevine DRM 安全级别 L1/L3
+    const val FP_WIFI = "fp.wifi_bssid"         // 连接 WiFi BSSID（需定位权限）
+    const val FP_CELL = "fp.cell_info"          // 基站信息（需定位权限）
+
+    // —— Environment（运行环境完整性）——
+    const val ENV_DEVELOPER_OPTIONS = "env.developer_options"
+    const val ENV_ACCESSIBILITY = "env.accessibility"
+    const val ENV_ADB_WIFI = "env.adb_wifi"
+    const val ENV_MOCK_LOCATION = "env.mock_location"
+    const val ENV_AUTOMATION_INPUT = "env.automation_input" // 自动化/无障碍注入点击（需宿主接入）
 
     // —— Attest（阶段一采集 / 本地解析，阶段二服务端验签）——
     const val ATTEST_KEY_CHAIN = "attest.key.cert_chain"

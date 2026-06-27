@@ -18,3 +18,6 @@
 -keepclasseswithmembernames class com.devcheck.nativebridge.** {
     native <methods>;
 }
+
+# adb 导出广播接收器（被 Manifest 引用，保留类名）
+-keep class com.devcheck.export.ExportReceiver { <init>(); }

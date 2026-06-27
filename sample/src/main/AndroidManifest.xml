@@ -5,7 +5,7 @@
         android:allowBackup="false"
         android:label="DevCheck Sample"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light">
+        android:theme="@style/Theme.DevCheckSample">
         <activity
             android:name=".MainActivity"
             android:exported="true">
