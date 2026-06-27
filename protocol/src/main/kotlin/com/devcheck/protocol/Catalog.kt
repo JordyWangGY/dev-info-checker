@@ -67,6 +67,7 @@ object Catalog {
         Point(Signals.ENV_DEVELOPER_OPTIONS, Category.ENVIRONMENT, "开发者选项"),
         Point(Signals.ENV_ACCESSIBILITY, Category.ENVIRONMENT, "无障碍服务"),
         Point(Signals.ENV_ADB_WIFI, Category.ENVIRONMENT, "无线调试"),
+        Point(Signals.ENV_MOCK_LOCATION, Category.ENVIRONMENT, "mock 定位 (GPS 伪造)"),
         // Attest（采集 / 本地解析）
         Point(Signals.ATTEST_KEY_CHAIN, Category.ATTEST, "Key Attestation 证书链"),
         Point(Signals.ATTEST_KEY_VERIFIED_BOOT_FAIL, Category.ATTEST, "verified boot 状态"),

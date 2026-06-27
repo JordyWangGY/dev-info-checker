@@ -1,8 +1,10 @@
 package com.devcheck.detector
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.wifi.WifiManager
 import android.telephony.TelephonyManager
 import com.devcheck.protocol.Category
@@ -14,18 +16,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * WiFi BSSID / 基站信息采集（仅采集，群控聚类在服务端）。
+ * 定位相关采集：WiFi BSSID / 基站 / mock 定位（GPS 伪造）。
  *
- * 这两项是"设备池/群控识别"的关键输入：N 个不同账号若周边 WiFi(BSSID) 列表或基站完全一致，
- * 说明在同一屋檐下 = 工作室。但**关联/聚类是服务端能力**（见 DETECTION_COVERAGE.md）。
- *
- * 需要宿主已申请并被授予 ACCESS_FINE_LOCATION；未授予则只上报"不可用"，不做风险加分。
+ * 「特定场景才需要」：默认关闭，由 [com.devcheck.DevCheckConfig.collectLocation] 显式开启，
+ * 且需宿主已被授予 ACCESS_FINE_LOCATION。任一不满足则跳过，不影响其它检测。
+ * 群控聚类(同 WiFi/基站)在服务端完成；mock 定位是 GPS 伪造的强信号。
  */
 internal class RadioDetector : Detector {
     override val id = "radio"
     override val category = Category.FINGERPRINT
 
+    @SuppressLint("MissingPermission")
     override suspend fun detect(ctx: DetectContext): List<Signal> = withContext(Dispatchers.IO) {
+        if (!ctx.config.collectLocation) return@withContext emptyList()
+
         val out = mutableListOf<Signal>()
         val granted = ctx.app.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
@@ -44,16 +48,25 @@ internal class RadioDetector : Detector {
                 out += Signal(Signals.FP_WIFI, category, Severity.INFO, 1f, Source.JAVA, mapOf("bssid" to bssid))
             }
         }
-
         runCatching {
             val tm = ctx.app.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-            val cells = tm.allCellInfo
             out += Signal(
                 Signals.FP_CELL, category, Severity.INFO, 1f, Source.JAVA,
-                mapOf("count" to (cells?.size ?: 0).toString()),
+                mapOf("count" to (tm.allCellInfo?.size ?: 0).toString()),
             )
         }
-
+        // mock 定位（GPS 伪造）：任一 provider 的最近定位标记为模拟
+        runCatching {
+            val lm = ctx.app.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            val mockProvider = lm?.getProviders(true).orEmpty()
+                .firstOrNull { p -> lm?.getLastKnownLocation(p)?.isMock == true }
+            if (mockProvider != null) {
+                out += Signal(
+                    Signals.ENV_MOCK_LOCATION, Category.ENVIRONMENT, Severity.HIGH, 0.8f, Source.JAVA,
+                    mapOf("provider" to mockProvider),
+                )
+            }
+        }
         out
     }
 }

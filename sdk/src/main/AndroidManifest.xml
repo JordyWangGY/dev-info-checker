@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- normal 权限（安装即授予） -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- 阶段二上报证据包时使用 -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 危险(运行时)权限：普通 App 可合法申请。用于采集 WiFi BSSID / 基站（群控聚类的关键输入）。
+         未授予时 RadioDetector 优雅降级、不影响其它检测。
+         不需要此能力的集成方可在自己 manifest 用 tools:node="remove" 移除。 -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application>
         <!-- adb 导出检测结果：仅在 debuggable 应用中真正执行（见 ExportReceiver 内的守卫） -->

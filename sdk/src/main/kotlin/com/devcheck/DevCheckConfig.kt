@@ -21,6 +21,12 @@ data class DevCheckConfig(
     /** 单个 Detector 的超时（毫秒）；超时按 fail-closed 记一条 MEDIUM 信号。 */
     val perDetectorTimeoutMs: Long = 1500,
 
+    /**
+     * 特定场景才开启：采集 WiFi BSSID / 基站 / mock 定位（GPS 伪造）。
+     * 需要宿主已申请并被授予 ACCESS_FINE_LOCATION（运行时）。默认关闭以遵循最小必要原则。
+     */
+    val collectLocation: Boolean = false,
+
     /** 是否输出调试日志。 */
     val debugLogging: Boolean = false,
 )

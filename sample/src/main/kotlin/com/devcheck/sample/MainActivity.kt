@@ -1,8 +1,10 @@
 package com.devcheck.sample
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
@@ -49,7 +51,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        DevCheck.init(this, DevCheckConfig(debugLogging = true))
+        DevCheck.init(this, DevCheckConfig(debugLogging = true, collectLocation = true))
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -77,7 +79,22 @@ class MainActivity : AppCompatActivity() {
         })
 
         setContentView(root)
+        maybeRequestLocation()
         runCheck()
+    }
+
+    private fun maybeRequestLocation() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                REQ_LOCATION,
+            )
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_LOCATION) runCheck() // 授权后重跑，纳入定位相关检测
     }
 
     private fun runCheck() {
@@ -338,5 +355,6 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val CATEGORY_CAP = 70
+        const val REQ_LOCATION = 1001
     }
 }

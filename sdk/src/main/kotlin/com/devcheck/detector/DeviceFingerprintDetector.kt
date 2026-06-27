@@ -6,6 +6,7 @@ import android.content.Context
 import android.media.MediaDrm
 import android.os.Build
 import android.provider.Settings
+import android.telephony.TelephonyManager
 import com.devcheck.core.sha256Hex
 import com.devcheck.protocol.Category
 import com.devcheck.protocol.Severity
@@ -47,6 +48,7 @@ internal class DeviceFingerprintDetector : Detector {
         val dm = ctx.app.resources.displayMetrics
         val am = ctx.app.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
         val mem = ActivityManager.MemoryInfo().also { am?.getMemoryInfo(it) }
+        val tm = runCatching { ctx.app.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager }.getOrNull()
 
         val attrs = linkedMapOf(
             "fp" to fp,
@@ -65,6 +67,10 @@ internal class DeviceFingerprintDetector : Detector {
             "timezone" to TimeZone.getDefault().id,
             "android" to "${Build.VERSION.RELEASE}/${Build.VERSION.SDK_INT}",
             "android_id_present" to androidId.isNotEmpty().toString(),
+            // 以下电话属性免权限
+            "sim_country" to (tm?.simCountryIso ?: ""),
+            "net_operator" to (tm?.networkOperatorName ?: ""),
+            "phone_type" to (tm?.phoneType?.toString() ?: ""),
         )
         out += Signal(Signals.FP_ATTRIBUTES, category, Severity.INFO, 1f, Source.JAVA, attrs)
 
