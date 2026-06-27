@@ -13,6 +13,8 @@ object Signals {
     const val EMULATOR_NO_SENSORS = "emulator.no_sensors"
     const val EMULATOR_CPU_ARCH = "emulator.cpu_x86_on_arm"
     const val EMULATOR_SENSOR_STATIC = "emulator.sensor_static" // 传感器零方差/恒定值=伪造
+    const val EMULATOR_QEMU_PROP = "emulator.qemu_prop"         // ro.kernel.qemu=1 (原生读)
+    const val EMULATOR_MISSING_FEATURES = "emulator.missing_features" // 缺触屏/电话/相机/蓝牙
 
     // —— Root ——
     const val ROOT_SU_BINARY = "root.su_binary"
@@ -22,6 +24,7 @@ object Signals {
     const val ROOT_DANGEROUS_PROPS = "root.dangerous_props"
     const val ROOT_PACKAGES = "root.packages"
     const val ROOT_KERNELSU = "root.kernelsu" // KernelSU / APatch 等内核级提权
+    const val ROOT_MOUNTS = "root.mounts"     // magisk/KSU/APatch 挂载痕迹
 
     // —— Hook ——
     const val HOOK_XPOSED = "hook.xposed"
@@ -47,12 +50,14 @@ object Signals {
 
     // —— Tamper ——
     const val TAMPER_SIGNATURE = "tamper.signature"
+    const val TAMPER_SIG_SPOOF = "tamper.signature_spoof" // PM 签名 vs APK 文件签名 不一致
     const val TAMPER_INSTALLER = "tamper.installer"
     const val TAMPER_SO_INTEGRITY = "tamper.so_integrity"
 
     // —— Network ——
     const val NETWORK_VPN = "network.vpn"
     const val NETWORK_PROXY = "network.proxy"
+    const val NETWORK_USER_CA = "network.user_ca" // 用户/MDM 安装的 CA(中间人抓包)
 
     // —— Fingerprint（采集为主，自洽/一致性判定在服务端）——
     const val FP_STABLE_ID = "fp.stable_id"

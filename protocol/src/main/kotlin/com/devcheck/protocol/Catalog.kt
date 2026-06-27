@@ -17,6 +17,9 @@ object Catalog {
         Point(Signals.EMULATOR_CPU_ARCH, Category.EMULATOR, "x86 ABI"),
         Point(Signals.EMULATOR_NO_SENSORS, Category.EMULATOR, "缺失关键传感器"),
         Point(Signals.EMULATOR_SENSOR_STATIC, Category.EMULATOR, "传感器静态 / 零方差"),
+        Point(Signals.EMULATOR_QEMU_PROP, Category.EMULATOR, "ro.kernel.qemu 属性 (原生)"),
+        Point(Signals.EMULATOR_GPU, Category.EMULATOR, "GPU 软件渲染 (SwiftShader 等)"),
+        Point(Signals.EMULATOR_MISSING_FEATURES, Category.EMULATOR, "关键系统特性缺失"),
         // Root
         Point(Signals.ROOT_SU_BINARY, Category.ROOT, "su 二进制"),
         Point(Signals.ROOT_MAGISK, Category.ROOT, "Magisk 痕迹"),
@@ -24,6 +27,8 @@ object Catalog {
         Point(Signals.ROOT_TEST_KEYS, Category.ROOT, "test-keys 签名"),
         Point(Signals.ROOT_PACKAGES, Category.ROOT, "Root 管理器应用"),
         Point(Signals.ROOT_RW_SYSTEM, Category.ROOT, "system 分区可写"),
+        Point(Signals.ROOT_DANGEROUS_PROPS, Category.ROOT, "危险系统属性 (ro.secure/debuggable)"),
+        Point(Signals.ROOT_MOUNTS, Category.ROOT, "magisk/KSU 挂载痕迹"),
         // Hook
         Point(Signals.HOOK_FRIDA_MAPS, Category.HOOK, "Frida 内存映射"),
         Point(Signals.HOOK_FRIDA_PORT, Category.HOOK, "Frida 默认端口"),
@@ -45,11 +50,13 @@ object Catalog {
         Point(Signals.VSPACE_FOREIGN_DIR, Category.VSPACE, "可列出他人 data 目录"),
         // Tamper
         Point(Signals.TAMPER_SIGNATURE, Category.TAMPER, "签名校验"),
+        Point(Signals.TAMPER_SIG_SPOOF, Category.TAMPER, "签名交叉校验 (防伪造)"),
         Point(Signals.TAMPER_INSTALLER, Category.TAMPER, "安装来源"),
         Point(Signals.TAMPER_SO_INTEGRITY, Category.TAMPER, ".so 自校验 (原生)"),
         // Network
         Point(Signals.NETWORK_VPN, Category.NETWORK, "VPN"),
         Point(Signals.NETWORK_PROXY, Category.NETWORK, "系统代理"),
+        Point(Signals.NETWORK_USER_CA, Category.NETWORK, "用户安装 CA (中间人)"),
         // Fingerprint（采集）
         Point(Signals.FP_ATTRIBUTES, Category.FINGERPRINT, "全面属性采集"),
         Point(Signals.FP_WIDEVINE, Category.FINGERPRINT, "Widevine 安全级别"),

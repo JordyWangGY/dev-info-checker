@@ -12,6 +12,10 @@ internal fun sha256Hex(bytes: ByteArray): String =
 internal fun readSelfMaps(): List<String> =
     runCatching { File("/proc/self/maps").readLines() }.getOrDefault(emptyList())
 
+/** 读取本进程挂载信息（/proc/self/mountinfo），用于发现 magisk/overlay 等挂载痕迹。 */
+internal fun readMountInfo(): List<String> =
+    runCatching { File("/proc/self/mountinfo").readLines() }.getOrDefault(emptyList())
+
 /** 读取本进程所有线程名（每个 /proc/self/task/<tid>/comm）。 */
 internal fun readThreadNames(): List<String> =
     runCatching {

@@ -45,6 +45,11 @@ object Blockers {
             "存在 QEMU 管道设备 /dev/qemu_pipe、/dev/socket/qemud（原生 syscall faccessat 确认）；仅模拟器具备",
             Trust.NATIVE, "1.2",
         ),
+        Blocker(
+            Signals.EMULATOR_QEMU_PROP,
+            "系统属性 ro.kernel.qemu=1（原生 __system_property_get 读取）；QEMU 模拟器实锤",
+            Trust.NATIVE, "1.x ✅",
+        ),
         // —— 二进制完整性（原生自校验）——
         Blocker(
             Signals.TAMPER_SO_INTEGRITY,

@@ -1,9 +1,11 @@
 package com.devcheck.detector
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.os.Build
+import com.devcheck.core.GpuInfo
 import com.devcheck.protocol.Category
 import com.devcheck.protocol.Severity
 import com.devcheck.protocol.Signal
@@ -90,6 +92,37 @@ internal class EmulatorDetector : Detector {
                     mapOf("accelerometer" to hasAccel.toString(), "gyroscope" to hasGyro.toString()),
                 )
             }
+        }
+
+        // QEMU 系统属性（原生读，抗 hook）：ro.kernel.qemu=1 近乎实锤 → 阻断点
+        if (ctx.native.isAvailable && ctx.native.getProp("ro.kernel.qemu") == "1") {
+            out += Signal(
+                Signals.EMULATOR_QEMU_PROP, category, Severity.CRITICAL, 1f, Source.NATIVE,
+                mapOf("ro.kernel.qemu" to "1"),
+            )
+        }
+
+        // GPU 渲染器：软件渲染 = 模拟器
+        GpuInfo.renderer()?.let { gpu ->
+            val low = gpu.lowercase()
+            if (listOf("swiftshader", "llvmpipe", "virgl", "vmware", "mesa", "bluestacks", "android emulator").any { low.contains(it) }) {
+                out += Signal(Signals.EMULATOR_GPU, category, Severity.HIGH, 0.8f, Source.JAVA, mapOf("renderer" to gpu))
+            }
+        }
+
+        // 关键系统特性缺失（无触屏/电话/相机/蓝牙）→ 模拟器 / PC
+        val pm = ctx.app.packageManager
+        val missing = buildList {
+            if (!pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) add("touchscreen")
+            if (!pm.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)) add("telephony")
+            if (!pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) add("camera")
+            if (!pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)) add("bluetooth")
+        }
+        if ("touchscreen" in missing || missing.size >= 2) {
+            out += Signal(
+                Signals.EMULATOR_MISSING_FEATURES, category, Severity.MEDIUM, 0.6f, Source.JAVA,
+                mapOf("missing" to missing.joinToString()),
+            )
         }
 
         out

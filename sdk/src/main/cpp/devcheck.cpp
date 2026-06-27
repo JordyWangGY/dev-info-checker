@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <sys/syscall.h>
+#include <sys/system_properties.h>
 
 // —— 字符串混淆：可疑库名以 XOR(0x5A) 存储，避免 `strings` 直接 grep 出检测特征 ——
 static const unsigned char XOR_KEY = 0x5A;
@@ -161,4 +162,14 @@ Java_com_devcheck_nativebridge_NativeProbe_nativeCodeWritable(JNIEnv *, jobject)
         if (w && x) return JNI_TRUE;   // 代码段同时可写可执行 = 被打补丁前置条件
     }
     return JNI_FALSE;
+}
+
+// 直接读系统属性，绕过可能被 hook 的 Java SystemProperties / getprop
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_devcheck_nativebridge_NativeProbe_nativeGetProp(JNIEnv *env, jobject, jstring jkey) {
+    const char *key = env->GetStringUTFChars(jkey, nullptr);
+    char buf[PROP_VALUE_MAX] = {0};
+    int n = key ? __system_property_get(key, buf) : 0;
+    if (key) env->ReleaseStringUTFChars(jkey, key);
+    return env->NewStringUTF(n > 0 ? buf : "");
 }

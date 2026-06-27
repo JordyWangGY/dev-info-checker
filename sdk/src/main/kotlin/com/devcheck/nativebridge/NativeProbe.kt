@@ -38,9 +38,13 @@ object NativeProbe {
     /** 本 SDK 原生库代码段是否「可写且可执行」（正常应 r-x；可写=被打补丁前置条件）。 */
     fun codeWritable(): Boolean = if (isAvailable) nativeCodeWritable() else false
 
+    /** 直接读系统属性（绕过 Java SystemProperties / getprop 的 hook）；不可用或不存在返回空串。 */
+    fun getProp(key: String): String = if (isAvailable) nativeGetProp(key) else ""
+
     private external fun nativeTracerPid(): Int
     private external fun nativeSuspiciousMaps(): Array<String>
     private external fun nativePathExists(path: String): Boolean
     private external fun nativeInlineHooked(): Array<String>
     private external fun nativeCodeWritable(): Boolean
+    private external fun nativeGetProp(key: String): String
 }

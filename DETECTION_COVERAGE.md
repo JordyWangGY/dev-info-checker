@@ -29,6 +29,8 @@
 
 ---
 
+> **本轮新增端侧检查**：`emulator.qemu_prop`(原生·**新阻断点**) · `emulator.gpu_swiftshader`(GPU 软件渲染) · `emulator.missing_features` · `root.dangerous_props`(ro.secure/debuggable·原生) · `root.mounts`(magisk/KSU 挂载) · `tamper.signature_spoof`(签名交叉校验·防伪造) · `network.user_ca`(用户 CA/中间人) · `storage.scope`+`vspace.sandbox`(文件夹范围 + 沙盒标记)
+
 ## B. 🟦 阶段二·服务端（数据规模 / 关联 / 验签）
 
 | 推演中的点 | 为什么必须放服务端 |

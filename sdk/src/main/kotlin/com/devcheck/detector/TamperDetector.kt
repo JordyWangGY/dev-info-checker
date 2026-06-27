@@ -39,6 +39,26 @@ internal class TamperDetector : Detector {
             )
         }
 
+        // 签名交叉校验：PM 上报签名 vs 直接解析 APK 文件签名，不一致 = 签名伪造框架
+        val apkSigs = runCatching {
+            val info = ctx.app.packageManager.getPackageArchiveInfo(
+                ctx.app.applicationInfo.sourceDir, PackageManager.GET_SIGNING_CERTIFICATES,
+            )
+            val signing = info?.signingInfo
+            val certs = when {
+                signing == null -> emptyArray()
+                signing.hasMultipleSigners() -> signing.apkContentsSigners
+                else -> signing.signingCertificateHistory
+            }
+            certs.orEmpty().map { sha256Hex(it.toByteArray()) }
+        }.getOrDefault(emptyList())
+        if (sigs.isNotEmpty() && apkSigs.isNotEmpty() && sigs.toSet() != apkSigs.toSet()) {
+            out += Signal(
+                Signals.TAMPER_SIG_SPOOF, category, Severity.HIGH, 0.85f, Source.JAVA,
+                mapOf("pm" to sigs.joinToString(), "apk" to apkSigs.joinToString()),
+            )
+        }
+
         // 2) 安装来源
         val installer = runCatching {
             ctx.app.packageManager.getInstallSourceInfo(ctx.app.packageName).installingPackageName

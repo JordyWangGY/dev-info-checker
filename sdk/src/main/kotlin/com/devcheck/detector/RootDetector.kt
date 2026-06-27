@@ -2,6 +2,7 @@ package com.devcheck.detector
 
 import android.os.Build
 import com.devcheck.core.Secrets
+import com.devcheck.core.readMountInfo
 import com.devcheck.protocol.Category
 import com.devcheck.protocol.Severity
 import com.devcheck.protocol.Signal
@@ -78,6 +79,25 @@ internal class RootDetector : Detector {
         val rwDirs = listOf("/system", "/system/bin", "/vendor", "/etc").filter { File(it).canWrite() }
         if (rwDirs.isNotEmpty()) {
             out += sig(Signals.ROOT_RW_SYSTEM, Severity.HIGH, 0.8f, mapOf("dirs" to rwDirs.joinToString()))
+        }
+
+        // 危险系统属性（原生读，抗 hook）
+        if (ctx.native.isAvailable) {
+            val bad = buildList {
+                if (ctx.native.getProp("ro.secure") == "0") add("ro.secure=0")
+                if (ctx.native.getProp("ro.debuggable") == "1") add("ro.debuggable=1")
+                if (ctx.native.getProp("service.adb.root") == "1") add("service.adb.root=1")
+            }
+            if (bad.isNotEmpty()) out += sig(Signals.ROOT_DANGEROUS_PROPS, Severity.MEDIUM, 0.6f, mapOf("props" to bad.joinToString()))
+        }
+
+        // 挂载痕迹：magisk / KSU / APatch
+        val mountHits = readMountInfo().filter { l ->
+            val low = l.lowercase()
+            listOf("magisk", "/data/adb", "ksu", "apatch").any { low.contains(it) }
+        }
+        if (mountHits.isNotEmpty()) {
+            out += sig(Signals.ROOT_MOUNTS, Severity.HIGH, 0.7f, mapOf("count" to mountHits.size.toString(), "sample" to mountHits.first().take(180)))
         }
 
         out

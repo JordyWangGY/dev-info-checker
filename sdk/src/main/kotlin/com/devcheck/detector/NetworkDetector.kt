@@ -43,6 +43,18 @@ internal class NetworkDetector : Detector {
             )
         }
 
+        // 用户 / MDM 安装的 CA 证书（可能用于中间人抓包）
+        val userCAs = runCatching {
+            val ks = java.security.KeyStore.getInstance("AndroidCAStore").apply { load(null) }
+            ks.aliases().toList().count { it.startsWith("user:") }
+        }.getOrDefault(0)
+        if (userCAs > 0) {
+            out += Signal(
+                Signals.NETWORK_USER_CA, category, Severity.MEDIUM, 0.5f, Source.JAVA,
+                mapOf("count" to userCAs.toString()),
+            )
+        }
+
         out
     }
 }
