@@ -4,9 +4,11 @@
 #
 #   ./install.sh [命令] [设备序列号]
 #
-#   多设备时指定其一：
-#     ./install.sh run <serial>            或   ANDROID_SERIAL=<serial> ./install.sh run
-#     ./install.sh devices                 列出已连接设备
+#   设备选择（设备类命令必填，支持模糊匹配）：
+#     ./install.sh run 15039               # 模糊匹配，唯一命中 → 192.168.2.43:15039
+#     ./install.sh run 192.168.2.43:15039  # 或完整序列号
+#     ANDROID_SERIAL=<serial> ./install.sh run   # 或环境变量(精确)
+#     ./install.sh devices                 # 列出已连接设备
 #
 #   命令：
 #     run        (默认) 构建 → 安装 → 启动 → 打印一次检测报告
@@ -37,8 +39,7 @@ PKG="com.devcheck.sample"
 ACT="$PKG/.MainActivity"
 
 CMD="${1:-run}"
-# 指定目标设备：第二个参数 或 ANDROID_SERIAL 环境变量（adb 原生识别该变量）
-[ -n "${2:-}" ] && export ANDROID_SERIAL="$2"
+DEVICE_PATTERN="${2:-}"   # 设备选择器（必填于设备类命令）：支持模糊匹配，grep 出唯一完整序列号
 
 c_info=$'\033[1;36m'; c_ok=$'\033[1;32m'; c_err=$'\033[1;31m'; c_off=$'\033[0m'
 log()  { printf '%s[devcheck]%s %s\n' "$c_info" "$c_off" "$*"; }
@@ -49,24 +50,40 @@ check_jdk() {
     "$JAVA_HOME/bin/java" -version >/dev/null 2>&1 || die "JAVA_HOME 无效：$JAVA_HOME（需要 JDK 17）"
 }
 
+connected() { "$ADB" devices | awk 'NR>1 && $2=="device"{print $1}'; }
+
+# 必须显式指定设备（绝不自动选）；参数支持模糊匹配，唯一命中才放行。
 require_device() {
     [ -x "$ADB" ] || die "找不到 adb：$ADB"
+    local all; all="$(connected)"
+    [ -n "$all" ] || die "没有已连接的设备/模拟器。"
+
+    if [ -n "$DEVICE_PATTERN" ]; then
+        local matches n; matches="$(printf '%s\n' "$all" | grep -- "$DEVICE_PATTERN" || true)"
+        n="$(printf '%s\n' "$matches" | grep -c . || true)"
+        case "$n" in
+            0) die "没有设备匹配 '$DEVICE_PATTERN'。当前设备：
+$all" ;;
+            1) export ANDROID_SERIAL="$matches"; log "目标设备：$ANDROID_SERIAL（模糊匹配 '$DEVICE_PATTERN'）" ;;
+            *) die "'$DEVICE_PATTERN' 匹配到多台，请更精确：
+$matches" ;;
+        esac
+        return
+    fi
+
     if [ -n "${ANDROID_SERIAL:-}" ]; then
-        "$ADB" -s "$ANDROID_SERIAL" get-state >/dev/null 2>&1 \
-            || die "指定设备 '$ANDROID_SERIAL' 未连接。用 ./install.sh devices 查看可用设备。"
+        printf '%s\n' "$all" | grep -qx "$ANDROID_SERIAL" \
+            || die "ANDROID_SERIAL='$ANDROID_SERIAL' 未连接。当前设备：
+$all"
         log "目标设备：$ANDROID_SERIAL"
         return
     fi
-    local list n
-    list="$("$ADB" devices | awk 'NR>1 && $2=="device"{print $1}')"
-    n="$(printf '%s\n' "$list" | grep -c . || true)"
-    [ "$n" -ge 1 ] || die "没有已连接的设备/模拟器。"
-    if [ "$n" -gt 1 ]; then
-        die "检测到多台设备，请指定其一：
-  ./install.sh $CMD <serial>      或   ANDROID_SERIAL=<serial> ./install.sh $CMD
+
+    die "必须指定设备（支持模糊匹配）：
+  ./install.sh $CMD <设备关键字>     例如  ./install.sh $CMD $(printf '%s' "$all" | head -1 | grep -oE '[0-9]+$')
+  ./install.sh devices               查看全部
 当前设备：
-$list"
-    fi
+$all"
 }
 
 do_devices() {
