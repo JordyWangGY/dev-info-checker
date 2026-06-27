@@ -1,5 +1,8 @@
 package com.devcheck.sample
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
@@ -11,6 +14,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.devcheck.DevCheck
 import com.devcheck.DevCheckConfig
@@ -19,6 +23,7 @@ import com.devcheck.protocol.Catalog
 import com.devcheck.protocol.RiskReport
 import com.devcheck.protocol.Severity
 import com.devcheck.protocol.Verdict
+import com.devcheck.protocol.toJson
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.tabs.TabLayout
@@ -27,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -122,6 +128,22 @@ class MainActivity : AppCompatActivity() {
             textSize = 12f; setTextColor(sub); setPadding(0, dp(8), 0, 0)
         })
         content.addView(card)
+
+        // 复制 / 导出：同一行，放在「重新检测」上方
+        content.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { topMargin = dp(8) }
+            addView(Button(this@MainActivity).apply {
+                text = "复制"
+                layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply { rightMargin = dp(4) }
+                setOnClickListener { copyJson() }
+            })
+            addView(Button(this@MainActivity).apply {
+                text = "导出"
+                layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply { leftMargin = dp(4) }
+                setOnClickListener { exportJson() }
+            })
+        })
 
         // 重新检测按钮：放在总结下方
         content.addView(Button(this).apply {
@@ -285,6 +307,34 @@ class MainActivity : AppCompatActivity() {
         r.signals.forEach { sb.append("  [${it.severity}] ${it.id} (${it.confidence}) [${it.source}]\n") }
         Log.i("DevCheck", "\n$sb")
     }
+
+    private fun copyJson() {
+        val json = report?.toJson() ?: return toast("请先完成检测")
+        (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
+            .setPrimaryClip(ClipData.newPlainText("DevCheck report", json))
+        toast("JSON 已复制 (${json.length} 字)")
+    }
+
+    private fun exportJson() {
+        val json = report?.toJson() ?: return toast("请先完成检测")
+        val file = File(getExternalFilesDir(null) ?: filesDir, "devcheck-report.json")
+        if (runCatching { file.writeText(json) }.isFailure) return toast("导出失败")
+        toast("已导出: ${file.absolutePath}")
+        runCatching {
+            startActivity(
+                Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "application/json"
+                        putExtra(Intent.EXTRA_SUBJECT, "DevCheck report")
+                        putExtra(Intent.EXTRA_TEXT, json)
+                    },
+                    "导出 DevCheck 报告",
+                ),
+            )
+        }
+    }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     private companion object {
         const val CATEGORY_CAP = 70
