@@ -64,7 +64,7 @@ require_device() {
         case "$n" in
             0) die "没有设备匹配 '$DEVICE_PATTERN'。当前设备：
 $all" ;;
-            1) export ANDROID_SERIAL="$matches"; log "目标设备：$ANDROID_SERIAL（模糊匹配 '$DEVICE_PATTERN'）" ;;
+            1) export ANDROID_SERIAL="$matches"; log "目标设备：${ANDROID_SERIAL}（模糊匹配 '$DEVICE_PATTERN'）" ;;
             *) die "'$DEVICE_PATTERN' 匹配到多台，请更精确：
 $matches" ;;
         esac
