@@ -83,6 +83,40 @@
 
 ---
 
+## E. 📋 Play Integrity 现状与优化空间（**仅状态记录，非实现计划/待办承诺**）
+
+> 本节只**如实记录**当前 Play Integrity 走到哪一步、哪些能优化，**不构成要去实现的计划**。
+> 是否动手、何时动手另行决策。
+
+### 当前进度（把 PI 看成一条流水线）
+
+| 步骤 | 状态 | 说明 |
+|---|---|---|
+| 1. 采集令牌 | ✅ | 用 **Classic** API（`IntegrityTokenRequest`），且**仅在配置了 `cloudProjectNumber` 时**才执行 |
+| 2. 失败错误码本地计分 | ✅ | `attest.play_integrity.env`（无需解码即暴露 GMS/Play 环境；瞬时/网络/配置错误忽略） |
+| 3. nonce 服务端下发、单次、绑定本次动作 | ❌ | 现状 nonce = **本地** `SecureRandom` challenge，未与服务端绑定 → 防重放/MITM 实际为空 |
+| 4. 服务端解码令牌、读判定 | ❌ | `deviceIntegrity`(含 `MEETS_VIRTUAL_INTEGRITY`=模拟器) / `appIntegrity` / `accountDetails` 全靠这步 |
+| 5. 按判定裁决（虚拟设备阻断点 `attest.play_integrity.virtual`） | ❌ | 已定义信号，属阶段二服务端，未建 |
+
+> **结论：现停在「采集 + 本地看错误码」。令牌已收上来但未解码——其核心价值（判定结论）尚未兑现。**
+
+### 可优化点（记录，未承诺实现）
+
+**端侧：**
+- **nonce 改为服务端下发**（即步骤 3）：本地生成的 nonce 防不住重放，截获的合法令牌可重复使用。这是让 PI 从「摆设」变「有用」的安全前提。
+- **Classic vs Standard 取舍**：库（`integrity-1.4.0`）两套都在（`StandardIntegrityManager`/`StandardIntegrityTokenProvider` 等）。Standard 有预热、延迟低、适合高频；Classic（现状）每次全程往返、限流更紧，但每次新鲜、配服务端 nonce 防重放更强。**偶发风控场景倾向保留 Classic**，是否换取决于调用频率——真权衡，非「Standard 必然更好」。
+- **gating 细化**：现在 `cloudProjectNumber==null` 直接跳过整段，连错误码环境信号也拿不到；可区分「未配置」与「环境报错」。
+- **`appAccessRiskVerdict`**（PI 较新字段）可查屏幕共享/无障碍滥用等，正好补「自动化/无障碍注入」盲区——但**必须服务端解码**才能读。
+
+**服务端（真正瓶颈，未建）：**
+- 解密令牌 → 读判定、验 nonce/时间戳/包名/项目号 → 驱动 `attest.play_integrity.virtual` 阻断点。**步骤 4–5 才是 PI 的全部价值所在；端侧再优化也解锁不了它。**
+
+### 已知验证缺口
+- `attest.play_integrity.env` **未在设备现场触发过**（sample 未配 `cloudProjectNumber`，整段被跳过）——目前仅**编译 + 单测**覆盖。
+- 全程仅在 redroid 容器验证，未在真机 / 真 GMS 环境验证。
+
+---
+
 ## 一句话总结
 
 > 端侧把"假设备/脚本/低端模拟器/已知 root-hook"尽量实锤掉，并采集**宽而可信**的属性；  
