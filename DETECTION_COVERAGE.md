@@ -26,6 +26,8 @@
 | **生态软件一致性**（新·原 D 节排除项） | `ecosystem.brand_mismatch` `ecosystem.no_gms` `ecosystem.inventory` | 声称品牌却缺该品牌特征系统包 / 无 GMS = 模拟器或伪造机型；另采集白名单生态清单喂服务端。**仅计分、无阻断点** | JAVA |
 | **文件创建时间异常**（新·原 D 节排除项） | `filetime.install_before_build` `filetime.future_file` `filetime.crtime` ⚠️`filetime.uniform_install`(待验证) | 安装早于系统编译时间(真机不可能) / 文件时间在未来(时钟篡改) / crtime 经 native statx 采集；雷同性见下方待验证说明。**仅计分、无阻断点** | JAVA/NATIVE |
 | 硬件背书 | `attest.key.*` | Key Attestation 本地解析 verifiedBoot/安全级别；Play Integrity 采集 | HARDWARE |
+| **Play Integrity 错误码**（新） | `attest.play_integrity.env` | 令牌请求失败的 `IntegrityErrorCode` 无需解码即暴露 GMS/Play 环境：无 GMS/Play、无法绑定服务、`APP_UID_MISMATCH` 等。瞬时/网络/配置错误一律忽略。**仅计分、无阻断点** | JAVA |
+| **GMS 签名采集**（新） | `ecosystem.inventory`(`vending_sig`/`gms_sig`) | 采集 `com.android.vending`/`gms` 签名 SHA-256，交服务端比对 Google 官方证书识别 microG/假 GMS（客户端不硬编证书常量、不本地裁决） | JAVA |
 
 > 阻断点（命中即 100% 不可信）见 `ARCHITECTURE.md §13`，本轮新增信号中**无新增阻断点**——它们多为评分/采集类，刻意不做硬阻断以控误报。
 
@@ -68,7 +70,7 @@
 | **TEE 伪装 / Key Attestation 本地解析** | 本地只能读证书里的值；真伪需服务端**验链到 Google 硬件根 CA**(阶段二)。本地解析结论标注"强但非权威" |
 | **自动化 / 无障碍注入点击** | 需宿主在 View 层把 `MotionEvent` 交给 SDK 校验 `getToolType()`/`FLAG_WINDOW_IS_OBSCURED`。预留信号 `env.automation_input`，但**默认未接入** → 需宿主集成 |
 | **悬浮窗覆盖(其它 App 的 SystemAlertWindow)** | 无法直接枚举他人窗口；只能靠被遮挡触摸标志(同上，需宿主接入) |
-| **Play Integrity 本地判定模拟器** | 令牌加密，必须服务端解码 → 客户端只采集(`attest.play_integrity`) |
+| **Play Integrity 本地判定模拟器** | 令牌（含 `MEETS_VIRTUAL_INTEGRITY` 等**判定结论**）加密，必须服务端解码 → 客户端只采集(`attest.play_integrity`)。**但请求失败的错误码可本地用**（见 A 节 `attest.play_integrity.env`），暴露 GMS/Play 环境真伪 |
 
 ---
 

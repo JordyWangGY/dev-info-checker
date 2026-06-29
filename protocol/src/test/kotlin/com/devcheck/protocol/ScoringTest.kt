@@ -75,6 +75,11 @@ class ScoringTest {
             Signals.FILETIME_FUTURE_FILE, Signals.FILETIME_CRTIME,
         )
         newIds.forEach { assertFalse(it in Blockers.IDS, "$it 不应是阻断点") }
+        // Play Integrity 错误码环境信号同样仅计分、非阻断（去谷歌真机会合法触发）
+        assertFalse(Signals.ATTEST_PLAY_ENV in Blockers.IDS)
+        val pe = Scoring.evaluate(listOf(sig(Signals.ATTEST_PLAY_ENV, Category.ATTEST, Severity.MEDIUM)))
+        assertTrue(pe.blockingSignals.isEmpty())
+        assertFalse(pe.verdict == Verdict.COMPROMISED)
 
         // 单独一个品牌不符(HIGH) 远不到 COMPROMISED
         val r = Scoring.evaluate(listOf(sig(Signals.ECOSYSTEM_BRAND_MISMATCH, Category.EMULATOR, Severity.HIGH)))

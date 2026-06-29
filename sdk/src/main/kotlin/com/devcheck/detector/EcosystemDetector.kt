@@ -2,6 +2,7 @@ package com.devcheck.detector
 
 import android.content.pm.PackageManager
 import android.os.Build
+import com.devcheck.core.sha256Hex
 import com.devcheck.protocol.Category
 import com.devcheck.protocol.Severity
 import com.devcheck.protocol.Signal
@@ -100,7 +101,10 @@ internal class EcosystemDetector : Detector {
             )
         }
 
-        // 采集：白名单命中清单（INFO，0 分），喂服务端一致性判定
+        // 采集：白名单命中清单 + GMS 签名 SHA（INFO，0 分），喂服务端一致性判定。
+        // 签名仅采集不本地比对：microG / 假 GMS 是自签证书，与 Google 官方证书不符——
+        // 但「Google 官方证书 SHA」是个必须钉准的常量，本地硬编一旦写错会让所有真机误报，
+        // 故交由服务端用权威证书比对，客户端只上报 SHA。
         out += Signal(
             Signals.ECOSYSTEM_INVENTORY, Category.FINGERPRINT, Severity.INFO, 1f, Source.JAVA,
             mapOf(
@@ -108,6 +112,8 @@ internal class EcosystemDetector : Detector {
                 "vendor_present" to "${vendorPresent.size}/${matched?.second?.size ?: 0}",
                 "gms_present" to gmsPresent.isNotEmpty().toString(),
                 "matched_pkgs" to (vendorPresent + gmsPresent).joinToString(),
+                "vending_sig" to signatureSha256(pm, "com.android.vending"),
+                "gms_sig" to signatureSha256(pm, "com.google.android.gms"),
             ),
         )
 
@@ -116,4 +122,12 @@ internal class EcosystemDetector : Detector {
 
     private fun isInstalled(pm: PackageManager, pkg: String): Boolean =
         runCatching { pm.getPackageInfo(pkg, 0); true }.getOrDefault(false)
+
+    /** 取包签名证书 SHA-256（首个签名者）；缺包 / 不可读返回空串。仅用于采集。 */
+    private fun signatureSha256(pm: PackageManager, pkg: String): String = runCatching {
+        val info = pm.getPackageInfo(pkg, PackageManager.GET_SIGNING_CERTIFICATES)
+        val signing = info.signingInfo ?: return ""
+        val certs = if (signing.hasMultipleSigners()) signing.apkContentsSigners else signing.signingCertificateHistory
+        certs.orEmpty().firstOrNull()?.let { sha256Hex(it.toByteArray()) }.orEmpty()
+    }.getOrDefault("")
 }

@@ -82,5 +82,6 @@ object Catalog {
         Point(Signals.ATTEST_KEY_VERIFIED_BOOT_FAIL, Category.ATTEST, "verified boot 状态"),
         Point(Signals.ATTEST_KEY_NOT_HARDWARE, Category.ATTEST, "TEE / 硬件安全级别"),
         Point(Signals.ATTEST_PLAY_INTEGRITY, Category.ATTEST, "Play Integrity 令牌"),
+        Point(Signals.ATTEST_PLAY_ENV, Category.ATTEST, "Play Integrity 错误码 (GMS 环境)"),
     )
 }

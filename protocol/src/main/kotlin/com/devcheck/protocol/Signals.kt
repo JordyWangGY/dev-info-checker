@@ -92,6 +92,7 @@ object Signals {
     const val ATTEST_KEY_VERIFIED_BOOT_FAIL = "attest.key.verified_boot_fail"
     const val ATTEST_KEY_NOT_HARDWARE = "attest.key.not_hardware"
     const val ATTEST_PLAY_VIRTUAL = "attest.play_integrity.virtual"
+    const val ATTEST_PLAY_ENV = "attest.play_integrity.env" // 令牌请求失败的错误码暴露 GMS/Play 环境(本地, 仅计分)
 
     // —— Runtime（框架自身）——
     const val DETECTOR_ERROR = "runtime.detector_error"

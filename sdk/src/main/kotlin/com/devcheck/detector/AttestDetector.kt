@@ -3,6 +3,7 @@ package com.devcheck.detector
 import android.util.Base64
 import com.devcheck.attest.KeyAttestation
 import com.devcheck.attest.PlayIntegrity
+import com.google.android.play.core.integrity.model.IntegrityErrorCode as EC
 import com.devcheck.protocol.Category
 import com.devcheck.protocol.Severity
 import com.devcheck.protocol.Signal
@@ -83,8 +84,45 @@ internal class AttestDetector : Detector {
                     "reason" to (pi.error ?: ""),
                 ),
             )
+            // 令牌请求失败时，确定性错误码本地即暴露 GMS/Play 环境真伪（无需解码）→ 计分。
+            // 瞬时/网络/配置类错误一律忽略，避免误报；去谷歌真机的「无 GMS」属同类误报，故仅计分非阻断。
+            if (!pi.available) playEnvSignal(pi.errorCode)?.let { out += it }
         }
 
         out
+    }
+
+    /** 把确定性的 Play Integrity 错误码映射为计分信号；瞬时/未知码返回 null（不计分）。 */
+    private fun playEnvSignal(code: Int): Signal? {
+        val (sev, conf) = when (code) {
+            // 安装上下文被篡改（多开 / 重打包的强迹象）
+            EC.APP_UID_MISMATCH, EC.APP_NOT_INSTALLED -> Severity.HIGH to 0.7f
+            // 无正版 GMS/Play，或 Integrity 服务无法绑定（模拟器 / AOSP / microG / 伪造 GMS）
+            EC.PLAY_SERVICES_NOT_FOUND, EC.PLAY_STORE_NOT_FOUND,
+            EC.CANNOT_BIND_TO_SERVICE, EC.API_NOT_AVAILABLE -> Severity.MEDIUM to 0.5f
+            // 版本异常旧 / 无 Google 账号（弱信号，真机也可能）
+            EC.PLAY_SERVICES_VERSION_OUTDATED, EC.PLAY_STORE_VERSION_OUTDATED,
+            EC.PLAY_STORE_ACCOUNT_NOT_FOUND -> Severity.LOW to 0.5f
+            // NETWORK_ERROR / TOO_MANY_REQUESTS / GOOGLE_SERVER_UNAVAILABLE / CLIENT_TRANSIENT_ERROR /
+            // INTERNAL_ERROR / NONCE_* / CLOUD_PROJECT_NUMBER_IS_INVALID / NO_ERROR / 未知 → 忽略
+            else -> return null
+        }
+        return Signal(
+            Signals.ATTEST_PLAY_ENV, category, sev, conf, Source.JAVA,
+            mapOf("errorCode" to code.toString(), "name" to ecName(code)),
+        )
+    }
+
+    private fun ecName(code: Int): String = when (code) {
+        EC.APP_UID_MISMATCH -> "APP_UID_MISMATCH"
+        EC.APP_NOT_INSTALLED -> "APP_NOT_INSTALLED"
+        EC.PLAY_SERVICES_NOT_FOUND -> "PLAY_SERVICES_NOT_FOUND"
+        EC.PLAY_STORE_NOT_FOUND -> "PLAY_STORE_NOT_FOUND"
+        EC.CANNOT_BIND_TO_SERVICE -> "CANNOT_BIND_TO_SERVICE"
+        EC.API_NOT_AVAILABLE -> "API_NOT_AVAILABLE"
+        EC.PLAY_SERVICES_VERSION_OUTDATED -> "PLAY_SERVICES_VERSION_OUTDATED"
+        EC.PLAY_STORE_VERSION_OUTDATED -> "PLAY_STORE_VERSION_OUTDATED"
+        EC.PLAY_STORE_ACCOUNT_NOT_FOUND -> "PLAY_STORE_ACCOUNT_NOT_FOUND"
+        else -> "OTHER"
     }
 }
