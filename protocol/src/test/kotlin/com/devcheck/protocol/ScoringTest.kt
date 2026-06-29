@@ -67,6 +67,33 @@ class ScoringTest {
     }
 
     @Test
+    fun newEcosystemAndFileTimeSignalsScoreButNeverBlock() {
+        // 新增信号均非阻断点：不在 Blockers.IDS，且即便命中也不得强判 COMPROMISED
+        val newIds = listOf(
+            Signals.ECOSYSTEM_BRAND_MISMATCH, Signals.ECOSYSTEM_NO_GMS, Signals.ECOSYSTEM_INVENTORY,
+            Signals.FILETIME_INSTALL_BEFORE_BUILD, Signals.FILETIME_UNIFORM_INSTALL,
+            Signals.FILETIME_FUTURE_FILE, Signals.FILETIME_CRTIME,
+        )
+        newIds.forEach { assertFalse(it in Blockers.IDS, "$it 不应是阻断点") }
+
+        // 单独一个品牌不符(HIGH) 远不到 COMPROMISED
+        val r = Scoring.evaluate(listOf(sig(Signals.ECOSYSTEM_BRAND_MISMATCH, Category.EMULATOR, Severity.HIGH)))
+        assertTrue(r.blockingSignals.isEmpty())
+        assertFalse(r.verdict == Verdict.COMPROMISED)
+    }
+
+    @Test
+    fun ecosystemSignalsShareEmulatorCategoryCap() {
+        // ecosystem.* 归入 EMULATOR 类，与既有 emulator 信号共享 70 封顶，不独占评分预算
+        val signals = listOf(
+            sig(Signals.EMULATOR_BUILD_PROPS, Category.EMULATOR, Severity.HIGH),
+            sig(Signals.ECOSYSTEM_BRAND_MISMATCH, Category.EMULATOR, Severity.HIGH),
+            sig(Signals.ECOSYSTEM_NO_GMS, Category.EMULATOR, Severity.HIGH),
+        )
+        assertTrue((Scoring.evaluate(signals).categoryScores[Category.EMULATOR] ?: 0) <= 70)
+    }
+
+    @Test
     fun verdictThresholds() {
         assertEquals(Verdict.GENUINE, Scoring.verdict(10))
         assertEquals(Verdict.LOW_RISK, Scoring.verdict(30))

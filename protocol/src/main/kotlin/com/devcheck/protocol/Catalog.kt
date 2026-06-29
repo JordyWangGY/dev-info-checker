@@ -57,6 +57,15 @@ object Catalog {
         Point(Signals.NETWORK_VPN, Category.NETWORK, "VPN"),
         Point(Signals.NETWORK_PROXY, Category.NETWORK, "系统代理"),
         Point(Signals.NETWORK_USER_CA, Category.NETWORK, "用户安装 CA (中间人)"),
+        // Ecosystem（生态软件一致性：归 EMULATOR 计分 / FINGERPRINT 采集）
+        Point(Signals.ECOSYSTEM_BRAND_MISMATCH, Category.EMULATOR, "声称品牌缺生态系统包"),
+        Point(Signals.ECOSYSTEM_NO_GMS, Category.EMULATOR, "无 GMS (弱信号)"),
+        Point(Signals.ECOSYSTEM_INVENTORY, Category.FINGERPRINT, "生态包清单采集"),
+        // FileTime（时间戳异常：归 TAMPER 计分 / FINGERPRINT 采集）
+        Point(Signals.FILETIME_INSTALL_BEFORE_BUILD, Category.TAMPER, "安装早于系统编译时间"),
+        Point(Signals.FILETIME_UNIFORM_INSTALL, Category.TAMPER, "系统包安装时间雷同 (批量镜像)"),
+        Point(Signals.FILETIME_FUTURE_FILE, Category.TAMPER, "文件时间在未来 (时钟篡改)"),
+        Point(Signals.FILETIME_CRTIME, Category.FINGERPRINT, "文件创建时间采集 (statx)"),
         // Fingerprint（采集）
         Point(Signals.FP_ATTRIBUTES, Category.FINGERPRINT, "全面属性采集"),
         Point(Signals.FP_WIDEVINE, Category.FINGERPRINT, "Widevine 安全级别"),

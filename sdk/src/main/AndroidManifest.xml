@@ -13,6 +13,78 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!--
+      包可见性白名单（Android 11+ / API 30）。仅声明具体包名 → getPackageInfo 可见，
+      无需 QUERY_ALL_PACKAGES（规避 Play 敏感权限审核）。用于：
+        · EcosystemDetector：机型↔厂商系统应用一致性
+        · FileTimeDetector：系统包安装时间雷同性
+        · RootDetector：root 管理器包名探测（此前在 API 30+ 因未声明而静默漏报，一并修复）
+      这些都是公开包名，明文列出不可避免也无碍。
+    -->
+    <queries>
+        <!-- GMS 基线（品牌无关） -->
+        <package android:name="com.google.android.gms" />
+        <package android:name="com.android.vending" />
+        <package android:name="com.google.android.gsf" />
+        <!-- ===== 美国 / 欧洲主流 ===== -->
+        <!-- Samsung -->
+        <package android:name="com.sec.android.app.launcher" />
+        <package android:name="com.samsung.android.app.galaxyfinder" />
+        <package android:name="com.samsung.android.messaging" />
+        <package android:name="com.sec.android.daemonapp" />
+        <package android:name="com.samsung.android.bixby.agent" />
+        <!-- Google / Pixel -->
+        <package android:name="com.google.android.apps.nexuslauncher" />
+        <package android:name="com.google.android.googlequicksearchbox" />
+        <package android:name="com.google.android.apps.wellbeing" />
+        <package android:name="com.google.android.apps.turbo" />
+        <package android:name="com.google.android.as" />
+        <!-- Motorola / Lenovo -->
+        <package android:name="com.motorola.launcher3" />
+        <package android:name="com.motorola.ccc.ota" />
+        <package android:name="com.motorola.motodisplay" />
+        <package android:name="com.motorola.help" />
+        <!-- OnePlus -->
+        <package android:name="com.oneplus.launcher" />
+        <package android:name="net.oneplus.launcher" />
+        <package android:name="com.oneplus.security" />
+        <!-- Nothing -->
+        <package android:name="com.nothing.launcher" />
+        <package android:name="com.nothing.thirdparty" />
+        <!-- Sony / Xperia -->
+        <package android:name="com.sonymobile.home" />
+        <package android:name="com.sonyericsson.home" />
+        <package android:name="com.sonymobile.android.dialer" />
+        <!-- ===== 中国主流（欧洲亦有份额） ===== -->
+        <!-- Xiaomi / Redmi / POCO -->
+        <package android:name="com.miui.home" />
+        <package android:name="com.miui.securitycenter" />
+        <package android:name="com.xiaomi.market" />
+        <package android:name="com.miui.cleanmaster" />
+        <package android:name="com.android.thememanager" />
+        <!-- OPPO / realme -->
+        <package android:name="com.heytap.market" />
+        <package android:name="com.coloros.safecenter" />
+        <package android:name="com.oppo.launcher" />
+        <package android:name="com.heytap.themestore" />
+        <!-- vivo / iQOO -->
+        <package android:name="com.bbk.appstore" />
+        <package android:name="com.vivo.assistant" />
+        <package android:name="com.vivo.upslide" />
+        <!-- Huawei / Honor -->
+        <package android:name="com.huawei.android.launcher" />
+        <package android:name="com.huawei.appmarket" />
+        <package android:name="com.huawei.systemmanager" />
+        <package android:name="com.hihonor.id" />
+        <!-- Root 管理器（修复 RootDetector 在 API 30+ 的可见性漏报） -->
+        <package android:name="com.topjohnwu.magisk" />
+        <package android:name="eu.chainfire.supersu" />
+        <package android:name="com.koushikdutta.superuser" />
+        <package android:name="com.noshufou.android.su" />
+        <package android:name="me.weishu.kernelsu" />
+        <package android:name="me.bmax.apatch" />
+    </queries>
+
     <application>
         <!-- adb 导出检测结果：仅在 debuggable 应用中真正执行（见 ExportReceiver 内的守卫） -->
         <receiver

@@ -41,10 +41,18 @@ object NativeProbe {
     /** 直接读系统属性（绕过 Java SystemProperties / getprop 的 hook）；不可用或不存在返回空串。 */
     fun getProp(key: String): String = if (isAvailable) nativeGetProp(key) else ""
 
+    /**
+     * 文件真实创建时间（birth time，statx STATX_BTIME），毫秒 epoch。
+     * Kotlin/File 拿不到 crtime（仅 mtime），故下沉到 native syscall(statx)，同时绕过 libc stat hook。
+     * 返回 -1 表示原生不可用 / 文件系统不支持 btime / 路径不存在（上层据此回落 mtime）。
+     */
+    fun crtime(path: String): Long = if (isAvailable) nativeCrtime(path) else -1L
+
     private external fun nativeTracerPid(): Int
     private external fun nativeSuspiciousMaps(): Array<String>
     private external fun nativePathExists(path: String): Boolean
     private external fun nativeInlineHooked(): Array<String>
     private external fun nativeCodeWritable(): Boolean
     private external fun nativeGetProp(key: String): String
+    private external fun nativeCrtime(path: String): Long
 }

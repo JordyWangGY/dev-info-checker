@@ -12,6 +12,7 @@
 #include <dlfcn.h>
 #include <sys/syscall.h>
 #include <sys/system_properties.h>
+#include <linux/stat.h>   // struct statx / STATX_BTIME（直接走 __NR_statx，绕过 libc stat hook）
 
 // —— 字符串混淆：可疑库名以 XOR(0x5A) 存储，避免 `strings` 直接 grep 出检测特征 ——
 static const unsigned char XOR_KEY = 0x5A;
@@ -172,4 +173,25 @@ Java_com_devcheck_nativebridge_NativeProbe_nativeGetProp(JNIEnv *env, jobject, j
     int n = key ? __system_property_get(key, buf) : 0;
     if (key) env->ReleaseStringUTFChars(jkey, key);
     return env->NewStringUTF(n > 0 ? buf : "");
+}
+
+// 文件真实创建时间(birth time)：syscall(statx, STATX_BTIME)。毫秒 epoch；
+// 不支持/路径不存在/无 btime 返回 -1（上层回落 mtime）。直接 syscall 绕过 libc stat hook。
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_devcheck_nativebridge_NativeProbe_nativeCrtime(JNIEnv *env, jobject, jstring jpath) {
+    const char *path = env->GetStringUTFChars(jpath, nullptr);
+    if (path == nullptr) return -1;
+#if defined(__NR_statx)
+    struct statx stx;
+    memset(&stx, 0, sizeof(stx));
+    long r = syscall(__NR_statx, AT_FDCWD, path, 0, STATX_BTIME, &stx);
+    env->ReleaseStringUTFChars(jpath, path);
+    if (r != 0) return -1;
+    if ((stx.stx_mask & STATX_BTIME) == 0) return -1; // 文件系统未提供 btime
+    if (stx.stx_btime.tv_sec <= 0) return -1;
+    return (jlong) stx.stx_btime.tv_sec * 1000 + (jlong) (stx.stx_btime.tv_nsec / 1000000);
+#else
+    env->ReleaseStringUTFChars(jpath, path);
+    return -1;
+#endif
 }

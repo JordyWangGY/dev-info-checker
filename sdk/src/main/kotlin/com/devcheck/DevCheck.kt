@@ -8,8 +8,10 @@ import com.devcheck.detector.DebugDetector
 import com.devcheck.detector.DetectContext
 import com.devcheck.detector.Detector
 import com.devcheck.detector.DeviceFingerprintDetector
+import com.devcheck.detector.EcosystemDetector
 import com.devcheck.detector.EmulatorDetector
 import com.devcheck.detector.EnvironmentDetector
+import com.devcheck.detector.FileTimeDetector
 import com.devcheck.detector.HookDetector
 import com.devcheck.detector.NetworkDetector
 import com.devcheck.detector.RadioDetector
@@ -57,6 +59,8 @@ object DevCheck {
             StorageScanDetector(),
             TamperDetector(),
             NetworkDetector(),
+            EcosystemDetector(),
+            FileTimeDetector(),
             DeviceFingerprintDetector(),
             SensorDetector(),
             EnvironmentDetector(),

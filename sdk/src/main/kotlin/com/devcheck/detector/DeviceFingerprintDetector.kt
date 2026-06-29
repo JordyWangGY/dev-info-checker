@@ -26,7 +26,8 @@ import java.util.UUID
  * 设备池一致性 / 去重 / velocity 的判定交给**服务端**（见 DETECTION_COVERAGE.md）。
  * 这里只采集、不下结论（除少数本地即可判定的强冲突，如 x86 ABI 已在 EmulatorDetector）。
  *
- * 已按用户要求**排除**："读取厂商生态软件做型号一致性""文件创建时间指纹"。
+ * 注："读取厂商生态软件做型号一致性""文件创建时间"两项此前曾排除，现已应需求重新启用，
+ * 分别落在 [EcosystemDetector] 与 [FileTimeDetector]（仅计分、非阻断点）。
  */
 internal class DeviceFingerprintDetector : Detector {
     override val id = "fingerprint"

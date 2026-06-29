@@ -23,6 +23,8 @@
 | **全面指纹**（增强） | `fp.attributes` `fp.widevine` | 屏幕/CPU/RAM/SOC/ABI/locale/时区/内核/Widevine L 级 → 喂服务端一致性 | JAVA/HARDWARE |
 | **基站/WiFi 采集**（新） | `fp.cell_info` `fp.wifi_bssid` | 群控聚类输入；需 `ACCESS_FINE_LOCATION`，未授予则上报不可用、不加分 | JAVA |
 | **环境完整性**（新） | `env.developer_options` `env.accessibility` `env.adb_wifi` | 无需特殊权限的环境信号（多为低风险，供服务端关联） | JAVA |
+| **生态软件一致性**（新·原 D 节排除项） | `ecosystem.brand_mismatch` `ecosystem.no_gms` `ecosystem.inventory` | 声称品牌却缺该品牌特征系统包 / 无 GMS = 模拟器或伪造机型；另采集白名单生态清单喂服务端。**仅计分、无阻断点** | JAVA |
+| **文件创建时间异常**（新·原 D 节排除项） | `filetime.install_before_build` `filetime.uniform_install` `filetime.future_file` `filetime.crtime` | 安装早于系统编译时间(真机不可能) / 系统包安装时间雷同(批量镜像) / 文件时间在未来(时钟篡改)；crtime 经 native statx 采集。**仅计分、无阻断点** | JAVA/NATIVE |
 | 硬件背书 | `attest.key.*` | Key Attestation 本地解析 verifiedBoot/安全级别；Play Integrity 采集 | HARDWARE |
 
 > 阻断点（命中即 100% 不可信）见 `ARCHITECTURE.md §13`，本轮新增信号中**无新增阻断点**——它们多为评分/采集类，刻意不做硬阻断以控误报。
@@ -68,8 +70,8 @@
 
 | 点 | 状态 | 备注 |
 |---|---|---|
-| **读取厂商生态软件做"型号↔系统应用一致性"** | ⛔ 不实现 | 隐私合规 + `QUERY_ALL_PACKAGES` 审核风险。注：仍保留对**特定 root/hook 包名**的定向 `getPackageInfo` 探测（非生态扫描） |
-| **文件创建时间做内部指纹 / 时间差冲突** | ⛔ 不实现 | 按要求排除 |
+| ~~**读取厂商生态软件做"型号↔系统应用一致性"**~~ | ✅ **已重新启用**（见 A 节 `ecosystem.*`） | 攻击者升级手段后按需求开启。**改用精选 `<queries>` 白名单**逐包 `getPackageInfo`（厂商特征包 + GMS），**不申请 `QUERY_ALL_PACKAGES`** → 规避了当初排除的审核风险。仅计分、非阻断点 |
+| ~~**文件创建时间做内部指纹 / 时间差冲突**~~ | ✅ **已重新启用**（见 A 节 `filetime.*`） | crtime 经 native `statx(STATX_BTIME)` 采集（Java 拿不到 birth time）；安装早于系统编译、系统包装机时间雷同等异常计分。**仅计分、非阻断点**，靠 conf<1 + 24h SLACK 控制误报（定制 ROM / 无谷歌真机 / 时钟漂移） |
 
 ---
 

@@ -68,6 +68,17 @@ object Signals {
     const val FP_CELL = "fp.cell_info"          // 基站信息（需定位权限）
     const val STORAGE_SCOPE = "storage.scope"   // app 可达文件夹范围(自有目录+系统/共享目录)
 
+    // —— Ecosystem（系统生态软件一致性：声称机型 ↔ 厂商系统应用）——
+    const val ECOSYSTEM_BRAND_MISMATCH = "ecosystem.brand_mismatch" // 声称品牌却无该品牌任一特征系统包
+    const val ECOSYSTEM_NO_GMS = "ecosystem.no_gms"                 // GMS 基线全缺（弱信号，无谷歌真机合法存在）
+    const val ECOSYSTEM_INVENTORY = "ecosystem.inventory"          // 白名单生态包命中清单（采集，喂服务端）
+
+    // —— FileTime（文件创建时间 / 时间戳异常：时钟篡改 / 克隆镜像）——
+    const val FILETIME_INSTALL_BEFORE_BUILD = "filetime.install_before_build" // App 安装早于系统编译时间(真机不可能)
+    const val FILETIME_UNIFORM_INSTALL = "filetime.uniform_install"           // 多系统包安装时间精确雷同=批量装机镜像
+    const val FILETIME_FUTURE_FILE = "filetime.future_file"                   // 关键文件时间在未来=时钟篡改
+    const val FILETIME_CRTIME = "filetime.crtime"                             // 真实创建时间(statx btime, 采集)
+
     // —— Environment（运行环境完整性）——
     const val ENV_DEVELOPER_OPTIONS = "env.developer_options"
     const val ENV_ACCESSIBILITY = "env.accessibility"
