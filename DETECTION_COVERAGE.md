@@ -24,10 +24,16 @@
 | **基站/WiFi 采集**（新） | `fp.cell_info` `fp.wifi_bssid` | 群控聚类输入；需 `ACCESS_FINE_LOCATION`，未授予则上报不可用、不加分 | JAVA |
 | **环境完整性**（新） | `env.developer_options` `env.accessibility` `env.adb_wifi` | 无需特殊权限的环境信号（多为低风险，供服务端关联） | JAVA |
 | **生态软件一致性**（新·原 D 节排除项） | `ecosystem.brand_mismatch` `ecosystem.no_gms` `ecosystem.inventory` | 声称品牌却缺该品牌特征系统包 / 无 GMS = 模拟器或伪造机型；另采集白名单生态清单喂服务端。**仅计分、无阻断点** | JAVA |
-| **文件创建时间异常**（新·原 D 节排除项） | `filetime.install_before_build` `filetime.uniform_install` `filetime.future_file` `filetime.crtime` | 安装早于系统编译时间(真机不可能) / 系统包安装时间雷同(批量镜像) / 文件时间在未来(时钟篡改)；crtime 经 native statx 采集。**仅计分、无阻断点** | JAVA/NATIVE |
+| **文件创建时间异常**（新·原 D 节排除项） | `filetime.install_before_build` `filetime.future_file` `filetime.crtime` ⚠️`filetime.uniform_install`(待验证) | 安装早于系统编译时间(真机不可能) / 文件时间在未来(时钟篡改) / crtime 经 native statx 采集；雷同性见下方待验证说明。**仅计分、无阻断点** | JAVA/NATIVE |
 | 硬件背书 | `attest.key.*` | Key Attestation 本地解析 verifiedBoot/安全级别；Play Integrity 采集 | HARDWARE |
 
 > 阻断点（命中即 100% 不可信）见 `ARCHITECTURE.md §13`，本轮新增信号中**无新增阻断点**——它们多为评分/采集类，刻意不做硬阻断以控误报。
+
+> ⚠️ **`filetime.uniform_install` 前提待真机验证（勿轻信）**
+> 该信号假设：「真机系统应用的 `firstInstallTime` 是**散开**的，只有模拟器/克隆/批量装机镜像才会让 ≥5 个包挤在**同一秒**」。
+> **此前提尚未在真机上证实。** Android 的 `firstInstallTime` 存于 `/data/system/packages.xml`（`it`/`ut` 属性），预装系统应用很可能在**首次开机扫描**时被统一打上接近/相同的时间戳——若如此，**真机也会雷同**，本信号即为误报源。
+> 我们一度用 redroid 容器的 `dumpsys package`（系统包时间戳确实雷同）来「印证」，但 **redroid 本身是非真机，用它推断真机属循环论证，不作数。**
+> 处置：暂保留（MEDIUM×0.5、非阻断点、最坏轻微计分），**待用一台或多台正常使用过的真机采 `firstInstallTime` 分布后再决定保留 / 收紧阈值 / 删除**。在此之前不要把它当作可靠依据。
 
 ---
 
