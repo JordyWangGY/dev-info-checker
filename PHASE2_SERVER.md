@@ -25,7 +25,7 @@
 | Key Attestation 证书链 | 导出 X.509 链交服务端验链到 Google 硬件根 CA | `KeyAttestation.attest()` **只返回解析后的枚举值**（securityLevel/bootState…），**原始证书链未导出、未序列化** | 🔴 **链没上传**——服务端无法验签 |
 | 证据上报传输 | `AttestApi` + EvidenceBundle 签名 + `/v1/attest` | **无任何传输层**——`RiskReport` 仅本地生成/`adb export` | 🔴 **未建** |
 | Decision JWT 回包 | 服务端签发，`RiskReport.decisionJwt` 回填 | 字段已留(`decisionJwt: String? = null`)，**永远为 null** | 🟡 字段在、链路无 |
-| 服务端组件 | `NonceService`/`PlayIntegrityVerifier`/`KeyAttestationVerifier`/`SignalCrossChecker`/`RiskScorer`/`DecisionSigner` | **`:server` 模块不存在** | 🔴 全未建 |
+| 服务端组件 | `NonceService`/`PlayIntegrityVerifier`/`KeyAttestationVerifier`/`SignalCrossChecker`/`RiskScorer`/`DecisionSigner` | **`:server` 模块已建**（纯 JVM，复用 `:protocol`，零新依赖）：NonceService + KeyAttestationVerifier + (Stub)PlayIntegrityVerifier + AuthoritativeScorer + DecisionSigner(ES256) + AttestService + JDK HttpServer 演示端点；已单测 + HttpServer 实测 | 🟡 批次一引擎已建；Google 根固定 / PI 真解码 / 真机链验证待真凭证与样本 |
 | 端侧新增信号 | （架构成文时未有） | 新增 `ecosystem.*`、`filetime.*`、`attest.play_integrity.env`、GMS 签名采集(`vending_sig`/`gms_sig`) | 🟡 服务端交叉校验需把这些纳入 |
 
 > **一句话现状**：端侧已能产出本地 `RiskReport`，但**承载信任锚的两样东西（PI 令牌原文、attestation 证书链）当前根本没被传出去**，且 nonce 未服务端化。所以阶段二的第一要务不是写复杂规则，而是**先把信任锚的数据通路打通**。
@@ -112,9 +112,10 @@
 
 ## 8. 现状与验证缺口（如实记录）
 
-- 服务端 `:server` **尚未存在**；上表批次一~三**全未开工**。
-- 端侧目前**只在 redroid 容器验证**，未在真机 / 真 GMS / 真 Play Integrity（配 `cloudProjectNumber`）环境跑通；`attest.play_integrity.env` 未现场触发（仅编译+单测）。
-- 批次一的两个硬件验签依赖**真机 + 真令牌**才能端到端验证——这必须在引入真机样本后做。
+- **批次一验证引擎已建**（`:server`）：NonceService / KeyAttestationVerifier（含 DER 解析）/ Stub PlayIntegrityVerifier / AuthoritativeScorer / DecisionSigner(ES256) / AttestService / JDK HttpServer 演示端点。`:server:test` 全通过；HttpServer 实测：`/v1/nonce` 下发 → 客户端自称 GENUINE 却带 NATIVE frida 阻断信号 → 服务端**重算判 COMPROMISED/100** 并签发可验签 Decision JWT → 同一 nonce 重放被拒。
+- **批次二、三**：未开工。
+- **仍依赖真凭证 / 真机样本**（已在代码标 TODO）：① Google 硬件 attestation 根证书**固定**（`trustedRootSha256` 当前为空 → rootTrusted 恒 false）；② Play Integrity **真解码**（需 Google Cloud 项目 + 服务账号，现为 Stub）；③ **真实证书链**端到端验签（当前单测覆盖 DER 解析 + 链遍历逻辑，未用真机链跑通）。
+- 端侧目前**只在 redroid 容器验证**；`attest.play_integrity.env` 未现场触发（sample 未配 `cloudProjectNumber`）。
 
 ---
 
