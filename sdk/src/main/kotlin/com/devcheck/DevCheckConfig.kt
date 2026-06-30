@@ -29,4 +29,16 @@ data class DevCheckConfig(
 
     /** 是否输出调试日志。 */
     val debugLogging: Boolean = false,
-)
+
+    /**
+     * 阶段二：nonce 来源。提供后，每次 evaluate 由它取**服务端下发的单次/TTL nonce**，
+     * 贯穿 Key Attestation challenge / Play Integrity nonce / 上报包，杜绝重放。
+     * 为 null 时本地兜底生成（防重放无效，仅供降级 / 离线）。
+     */
+    val nonceProvider: NonceProvider? = null,
+) {
+    /** 服务端 nonce 提供者；返回 null 视为取不到（回落本地）。 */
+    fun interface NonceProvider {
+        suspend fun fetch(): String?
+    }
+}

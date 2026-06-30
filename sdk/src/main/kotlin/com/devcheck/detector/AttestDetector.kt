@@ -29,8 +29,15 @@ internal class AttestDetector : Detector {
     override suspend fun detect(ctx: DetectContext): List<Signal> = withContext(Dispatchers.IO) {
         val out = mutableListOf<Signal>()
 
-        val challenge = ByteArray(24).also { SecureRandom().nextBytes(it) }
-        val r = KeyAttestation.attest(challenge)
+        // nonce 优先用服务端下发的（DevCheck 解析后经 ctx 传入）；为空则本地兜底。
+        val nonceStr = ctx.nonceB64.ifEmpty {
+            Base64.encodeToString(
+                ByteArray(24).also { SecureRandom().nextBytes(it) },
+                Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+            )
+        }
+        val r = KeyAttestation.attest(nonceStr.toByteArray())
+        ctx.sink.attestationChainDerB64 = r.chainDerB64 // 原始链交 DevCheck 组装上报包（不入 signal 明文）
 
         if (!r.available) {
             // 拿不到硬件 attestation（部分模拟器/老设备）。不直接阻断（避免误报），记可疑信号。
@@ -73,8 +80,8 @@ internal class AttestDetector : Detector {
 
         // Play Integrity：仅在配置了 cloudProjectNumber（有 GMS 场景）时采集令牌，验签留待阶段二
         ctx.config.playIntegrityCloudProjectNumber?.let { proj ->
-            val nonce = Base64.encodeToString(challenge, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
-            val pi = PlayIntegrity.request(ctx.app, proj, nonce)
+            val pi = PlayIntegrity.request(ctx.app, proj, nonceStr)
+            ctx.sink.playIntegrityToken = pi.token // 令牌原文交 DevCheck 组装上报包（不入 signal 明文）
             out += Signal(
                 Signals.ATTEST_PLAY_INTEGRITY, category, Severity.INFO, 1f,
                 if (pi.available) Source.HARDWARE else Source.JAVA,

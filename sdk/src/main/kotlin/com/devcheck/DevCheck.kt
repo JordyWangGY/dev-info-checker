@@ -7,6 +7,7 @@ import com.devcheck.detector.AttestDetector
 import com.devcheck.detector.DebugDetector
 import com.devcheck.detector.DetectContext
 import com.devcheck.detector.Detector
+import com.devcheck.detector.EvidenceSink
 import com.devcheck.detector.DeviceFingerprintDetector
 import com.devcheck.detector.EcosystemDetector
 import com.devcheck.detector.EmulatorDetector
@@ -21,7 +22,9 @@ import com.devcheck.detector.StorageScanDetector
 import com.devcheck.detector.TamperDetector
 import com.devcheck.detector.VirtualSpaceDetector
 import com.devcheck.nativebridge.NativeProbe
+import android.util.Base64
 import com.devcheck.protocol.Category
+import com.devcheck.protocol.EvidenceBundle
 import com.devcheck.protocol.RiskReport
 import com.devcheck.protocol.Severity
 import com.devcheck.protocol.Signal
@@ -46,6 +49,7 @@ object DevCheck {
 
     @Volatile private var config: DevCheckConfig? = null
     @Volatile private var appContext: Context? = null
+    @Volatile private var lastBundle: EvidenceBundle? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** 阶段一启用的检测器集合（阶段一 1.1 起逐步补齐 Hook/VSpace/Tamper/Network/Fingerprint）。 */
@@ -89,14 +93,39 @@ object DevCheck {
                 evidence = mapOf("note" to "native core not loaded; running java-only checks"),
             )
         }
+        // nonce：服务端优先（防重放），否则本地兜底。整次检测共用同一 nonce。
+        val provided = runCatching { cfg.nonceProvider?.fetch() }.getOrNull()
+        val nonceB64 = provided ?: localNonce()
+        val nonceSource = if (provided != null) "server" else "local"
+        val sink = EvidenceSink()
+
         // 穷尽式检测：所有 detector 并发跑完，命中阻断点不提前结束；
         // 阻断点的「硬覆盖」只发生在评分阶段，全部证据与全部阻断点都会保留在 report 中。
         signals += Orchestrator(detectors, cfg.perDetectorTimeoutMs)
-            .run(DetectContext(ctx, cfg, NativeProbe))
+            .run(DetectContext(ctx, cfg, NativeProbe, nonceB64, sink))
 
         val elapsedMs = (System.nanoTime() - start) / 1_000_000
-        LocalRiskScorer.build(signals, elapsedMs, NativeProbe.isAvailable)
+        val report = LocalRiskScorer.build(signals, elapsedMs, NativeProbe.isAvailable)
+
+        // 阶段二上报包：信任锚（PI 令牌 / attestation 链）+ nonce + 本地报告，备好待加密上报。
+        // 传输层（HTTP /v1/attest）属阶段二服务端就绪后再接，见 PHASE2_SERVER.md §5。
+        lastBundle = EvidenceBundle(
+            nonce = nonceB64,
+            nonceSource = nonceSource,
+            playIntegrityToken = sink.playIntegrityToken,
+            keyAttestationChainDerB64 = sink.attestationChainDerB64,
+            localReport = report,
+        )
+        report
     }
+
+    /** 最近一次 evaluate 组装的阶段二上报包（含信任锚原始令牌/证书链）；未运行过则为 null。 */
+    fun lastEvidenceBundle(): EvidenceBundle? = lastBundle
+
+    private fun localNonce(): String = Base64.encodeToString(
+        ByteArray(24).also { java.security.SecureRandom().nextBytes(it) },
+        Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+    )
 
     /** 回调重载；回调在后台线程触发，UI 更新请自行切主线程。 */
     fun evaluate(callback: (RiskReport) -> Unit) {

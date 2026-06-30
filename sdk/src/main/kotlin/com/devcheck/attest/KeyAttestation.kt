@@ -3,6 +3,7 @@ package com.devcheck.attest
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
+import android.util.Base64
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.cert.Certificate
@@ -37,17 +38,20 @@ internal object KeyAttestation {
         val chainLength: Int = 0,
         val strongBox: Boolean = false,
         val error: String? = null,
+        /** 原始证书链 Base64(NO_WRAP) DER，leaf→root；交服务端验链到 Google 硬件根 CA（阶段二）。 */
+        val chainDerB64: List<String> = emptyList(),
     )
 
     private class Chain(val certs: Array<Certificate>, val strongBox: Boolean)
 
     fun attest(challenge: ByteArray): Result = try {
         val chain = generateChain(challenge)
+        val chainB64 = chain.certs.map { Base64.encodeToString(it.encoded, Base64.NO_WRAP) }
         val leaf = chain.certs.firstOrNull() as? X509Certificate
-            ?: return Result(false, error = "no leaf certificate")
+            ?: return Result(false, error = "no leaf certificate", chainDerB64 = chainB64)
         val ext = leaf.getExtensionValue(OID)
-            ?: return Result(false, chainLength = chain.certs.size, strongBox = chain.strongBox, error = "no attestation extension")
-        parseExtension(ext, chain.certs.size, chain.strongBox)
+            ?: return Result(false, chainLength = chain.certs.size, strongBox = chain.strongBox, error = "no attestation extension", chainDerB64 = chainB64)
+        parseExtension(ext, chain.certs.size, chain.strongBox).copy(chainDerB64 = chainB64)
     } catch (t: Throwable) {
         Result(false, error = "${t.javaClass.simpleName}:${t.message ?: ""}")
     }

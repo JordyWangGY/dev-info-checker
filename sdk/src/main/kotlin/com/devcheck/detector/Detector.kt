@@ -11,7 +11,20 @@ class DetectContext(
     val app: Context,
     val config: DevCheckConfig,
     val native: NativeProbe,
+    /** 本次检测的 nonce（服务端下发或本地兜底）；AttestDetector 用作 attestation challenge / PI nonce。 */
+    val nonceB64: String = "",
+    /** 阶段二证据出口：AttestDetector 把 PI 令牌原文 / attestation 证书链写入，供 DevCheck 组装上报包。 */
+    val sink: EvidenceSink = EvidenceSink(),
 )
+
+/**
+ * 阶段二上报数据的进程内出口。原始令牌 / 证书链**不进** [Signal] 的明文 evidence、不进日志，
+ * 单独由此收集，再由 DevCheck 组装成 [com.devcheck.protocol.EvidenceBundle]（待加密上报）。
+ */
+class EvidenceSink {
+    @Volatile var playIntegrityToken: String? = null
+    @Volatile var attestationChainDerB64: List<String> = emptyList()
+}
 
 /**
  * 检测器接口。实现应：
