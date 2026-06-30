@@ -15,6 +15,11 @@ object Signals {
     const val EMULATOR_SENSOR_STATIC = "emulator.sensor_static" // 传感器零方差/恒定值=伪造
     const val EMULATOR_QEMU_PROP = "emulator.qemu_prop"         // ro.kernel.qemu=1 (原生读)
     const val EMULATOR_MISSING_FEATURES = "emulator.missing_features" // 缺触屏/电话/相机/蓝牙
+    // —— SELinux / 安全上下文（容器/云机最早露馅的一层；真机锁定态恒 enforcing）——
+    const val EMULATOR_SELINUX_PERMISSIVE = "emulator.selinux_permissive" // 非 enforcing(permissive/disabled)
+    const val EMULATOR_SELINUX_CONTEXT = "emulator.selinux_context"       // 自身域非规范 untrusted_app/缺 MLS 类别
+    const val EMULATOR_SELINUX_FS = "emulator.selinux_fs"                 // selinuxfs 缺失(真机必有)
+    const val EMULATOR_SELINUX_INFO = "emulator.selinux_info"             // 采集: enforce/context/mode (喂服务端一致性)
 
     // —— Root ——
     const val ROOT_SU_BINARY = "root.su_binary"

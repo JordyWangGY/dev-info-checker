@@ -195,3 +195,12 @@ Java_com_devcheck_nativebridge_NativeProbe_nativeCrtime(JNIEnv *env, jobject, js
     return -1;
 #endif
 }
+
+// 直接 syscall(openat/read) 读小文件（/proc、/sys、selinuxfs），绕过 libc open/read hook。
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_devcheck_nativebridge_NativeProbe_nativeReadText(JNIEnv *env, jobject, jstring jpath) {
+    const char *path = env->GetStringUTFChars(jpath, nullptr);
+    std::string out = path ? read_proc(path) : std::string();
+    if (path) env->ReleaseStringUTFChars(jpath, path);
+    return env->NewStringUTF(out.c_str());
+}

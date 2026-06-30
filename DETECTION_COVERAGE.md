@@ -14,6 +14,7 @@
 |---|---|---|---|
 | 模拟器 | `emulator.*` | Build 指纹/机型、QEMU 文件、x86 ABI、传感器缺失 | JAVA/NATIVE |
 | **传感器伪造**（新） | `emulator.sensor_static` | 采样加速度计，零方差/恒定值=伪造（真机静置也有微抖动） | JAVA |
+| **SELinux/安全上下文**（新） | `emulator.selinux_permissive` `emulator.selinux_context` `emulator.selinux_fs` `emulator.selinux_info` | 容器/云机最早露馅的一层：非 enforcing、selinuxfs 缺失、自身域非规范 `untrusted_app`(如 `unconfined`)。读取走 native syscall 抗 hook，**仅计分、无阻断点**（rooted 真机 setenforce 0 也会 permissive）。采集项喂服务端做机型/版本一致性复核 | JAVA(native 读) |
 | Root | `root.su_binary` `root.magisk` `root.test_keys` `root.rw_system` | su/Magisk 路径(混淆)、test-keys、system 可写 | JAVA/NATIVE |
 | **KernelSU/APatch**（新） | `root.kernelsu` | `/data/adb/ksu`、`/data/adb/ap` 等内核级提权特征 + 包名 | JAVA/NATIVE |
 | Hook | `hook.frida.*` `hook.xposed` `hook.substrate` `hook.inline_hook` | maps 扫描(原生)、frida 端口/线程、inline-hook 跳板 | NATIVE/JAVA |

@@ -81,6 +81,12 @@ class ScoringTest {
         assertTrue(pe.blockingSignals.isEmpty())
         assertFalse(pe.verdict == Verdict.COMPROMISED)
 
+        // SELinux/上下文信号同样仅计分、非阻断（rooted 真机 setenforce 0 也会 permissive）
+        listOf(
+            Signals.EMULATOR_SELINUX_PERMISSIVE, Signals.EMULATOR_SELINUX_CONTEXT,
+            Signals.EMULATOR_SELINUX_FS, Signals.EMULATOR_SELINUX_INFO,
+        ).forEach { assertFalse(it in Blockers.IDS, "$it 不应是阻断点") }
+
         // 单独一个品牌不符(HIGH) 远不到 COMPROMISED
         val r = Scoring.evaluate(listOf(sig(Signals.ECOSYSTEM_BRAND_MISMATCH, Category.EMULATOR, Severity.HIGH)))
         assertTrue(r.blockingSignals.isEmpty())

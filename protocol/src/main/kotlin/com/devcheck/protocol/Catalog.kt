@@ -20,6 +20,10 @@ object Catalog {
         Point(Signals.EMULATOR_QEMU_PROP, Category.EMULATOR, "ro.kernel.qemu 属性 (原生)"),
         Point(Signals.EMULATOR_GPU, Category.EMULATOR, "GPU 软件渲染 (SwiftShader 等)"),
         Point(Signals.EMULATOR_MISSING_FEATURES, Category.EMULATOR, "关键系统特性缺失"),
+        Point(Signals.EMULATOR_SELINUX_PERMISSIVE, Category.EMULATOR, "SELinux 非 enforcing"),
+        Point(Signals.EMULATOR_SELINUX_CONTEXT, Category.EMULATOR, "SELinux 上下文异常 (非 untrusted_app)"),
+        Point(Signals.EMULATOR_SELINUX_FS, Category.EMULATOR, "selinuxfs 缺失"),
+        Point(Signals.EMULATOR_SELINUX_INFO, Category.EMULATOR, "SELinux 状态采集"),
         // Root
         Point(Signals.ROOT_SU_BINARY, Category.ROOT, "su 二进制"),
         Point(Signals.ROOT_MAGISK, Category.ROOT, "Magisk 痕迹"),

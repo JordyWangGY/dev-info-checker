@@ -48,6 +48,12 @@ object NativeProbe {
      */
     fun crtime(path: String): Long = if (isAvailable) nativeCrtime(path) else -1L
 
+    /**
+     * 用 syscall(openat/read) 直接读小文件（/proc、/sys、selinuxfs 等），绕过 libc/Java 的
+     * open/read hook。返回内容字符串；不可用 / 打不开返回空串。用于 SELinux 上下文等抗伪造读取。
+     */
+    fun readText(path: String): String = if (isAvailable) nativeReadText(path) else ""
+
     private external fun nativeTracerPid(): Int
     private external fun nativeSuspiciousMaps(): Array<String>
     private external fun nativePathExists(path: String): Boolean
@@ -55,4 +61,5 @@ object NativeProbe {
     private external fun nativeCodeWritable(): Boolean
     private external fun nativeGetProp(key: String): String
     private external fun nativeCrtime(path: String): Long
+    private external fun nativeReadText(path: String): String
 }

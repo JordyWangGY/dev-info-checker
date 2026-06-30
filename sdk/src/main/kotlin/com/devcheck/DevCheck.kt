@@ -17,6 +17,7 @@ import com.devcheck.detector.HookDetector
 import com.devcheck.detector.NetworkDetector
 import com.devcheck.detector.RadioDetector
 import com.devcheck.detector.RootDetector
+import com.devcheck.detector.SeLinuxDetector
 import com.devcheck.detector.SensorDetector
 import com.devcheck.detector.StorageScanDetector
 import com.devcheck.detector.TamperDetector
@@ -56,6 +57,7 @@ object DevCheck {
     private val detectors: List<Detector> by lazy {
         listOf(
             EmulatorDetector(),
+            SeLinuxDetector(),
             RootDetector(),
             DebugDetector(),
             HookDetector(),
