@@ -12,6 +12,7 @@ class AttestService(
     private val nonces: NonceService,
     private val attestVerifier: KeyAttestationVerifier = KeyAttestationVerifier(),
     private val playVerifier: PlayIntegrityVerifier = StubPlayIntegrityVerifier(),
+    private val crossChecker: SignalCrossChecker = SignalCrossChecker(),
     private val scorer: AuthoritativeScorer = AuthoritativeScorer(),
     val signer: DecisionSigner = DecisionSigner(),
 ) {
@@ -33,7 +34,8 @@ class AttestService(
         val challenge = bundle.nonce.toByteArray()
         val attest = attestVerifier.verify(bundle.keyAttestationChainDerB64, challenge)
         val play = playVerifier.verify(bundle.playIntegrityToken, bundle.nonce)
-        val decision = scorer.decide(bundle, attest, play)
+        val cross = crossChecker.check(bundle, attest)
+        val decision = scorer.decide(bundle, attest, play, cross)
 
         val payload = """{"verdict":"${decision.verdict}","score":${decision.score},""" +
             """"nonce":"${bundle.nonce}","iat":$now}"""
