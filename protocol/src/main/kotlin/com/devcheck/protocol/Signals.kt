@@ -15,6 +15,17 @@ object Signals {
     const val EMULATOR_SENSOR_STATIC = "emulator.sensor_static" // 传感器零方差/恒定值=伪造
     const val EMULATOR_QEMU_PROP = "emulator.qemu_prop"         // ro.kernel.qemu=1 (原生读)
     const val EMULATOR_MISSING_FEATURES = "emulator.missing_features" // 缺触屏/电话/相机/蓝牙
+    // —— Cloud phone / 容器化(共享内核) 检测（ARM-on-ARM，经典 x86/QEMU/clocksource 检测失效）——
+    const val CLOUD_KERNEL = "emulator.cloud_kernel"         // /proc/version 宿主 Linux 内核串(Ubuntu/gcc/-generic)
+    const val CLOUD_DISK = "emulator.cloud_disk"             // /proc/partitions virtio vda/sr0, 无 mmcblk/UFS
+    const val CLOUD_PCI = "emulator.cloud_pci"               // /sys/bus/pci/devices 非空(手机无 PCI 总线)
+    const val CLOUD_INPUT = "emulator.cloud_input"           // /proc/bus/input/devices QEMU/Virtual 输入
+    const val CLOUD_CGROUP = "emulator.cloud_cgroup"         // /proc/self/cgroup systemd/docker/lxc 容器痕迹
+    const val CLOUD_NET = "emulator.cloud_net"               // /sys/class/net 只有 eth0、无 wlan0/rmnet
+    const val CLOUD_NO_BATTERY = "emulator.cloud_no_battery" // /sys/class/power_supply 无 battery(HAL 假造)
+    const val CLOUD_SOUNDCARD = "emulator.cloud_soundcard"   // /proc/asound/cards HDA Intel/QEMU 虚拟声卡
+    const val CLOUD_INFO = "emulator.cloud_info"             // 采集: 内核/磁盘/网卡/PCI/SoC/热区/调频(喂服务端)
+
     // —— SELinux / 安全上下文（容器/云机最早露馅的一层；真机锁定态恒 enforcing）——
     const val EMULATOR_SELINUX_PERMISSIVE = "emulator.selinux_permissive" // 非 enforcing(permissive/disabled)
     const val EMULATOR_SELINUX_CONTEXT = "emulator.selinux_context"       // 自身域非规范 untrusted_app/缺 MLS 类别

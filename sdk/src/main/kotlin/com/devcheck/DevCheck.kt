@@ -4,6 +4,7 @@ import android.content.Context
 import com.devcheck.core.LocalRiskScorer
 import com.devcheck.core.Orchestrator
 import com.devcheck.detector.AttestDetector
+import com.devcheck.detector.CloudPhoneDetector
 import com.devcheck.detector.DebugDetector
 import com.devcheck.detector.DetectContext
 import com.devcheck.detector.Detector
@@ -58,6 +59,7 @@ object DevCheck {
         listOf(
             EmulatorDetector(),
             SeLinuxDetector(),
+            CloudPhoneDetector(),
             RootDetector(),
             DebugDetector(),
             HookDetector(),

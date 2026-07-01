@@ -87,6 +87,13 @@ class ScoringTest {
             Signals.EMULATOR_SELINUX_FS, Signals.EMULATOR_SELINUX_INFO,
         ).forEach { assertFalse(it in Blockers.IDS, "$it 不应是阻断点") }
 
+        // 云手机检测信号同样仅计分、非阻断（ARM 云机上单条可被伪造）
+        listOf(
+            Signals.CLOUD_KERNEL, Signals.CLOUD_DISK, Signals.CLOUD_PCI, Signals.CLOUD_INPUT,
+            Signals.CLOUD_CGROUP, Signals.CLOUD_NET, Signals.CLOUD_NO_BATTERY,
+            Signals.CLOUD_SOUNDCARD, Signals.CLOUD_INFO,
+        ).forEach { assertFalse(it in Blockers.IDS, "$it 不应是阻断点") }
+
         // 单独一个品牌不符(HIGH) 远不到 COMPROMISED
         val r = Scoring.evaluate(listOf(sig(Signals.ECOSYSTEM_BRAND_MISMATCH, Category.EMULATOR, Severity.HIGH)))
         assertTrue(r.blockingSignals.isEmpty())
