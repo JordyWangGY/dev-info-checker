@@ -29,6 +29,7 @@ object Catalog {
         Point(Signals.CLOUD_NO_BATTERY, Category.EMULATOR, "sysfs 无电池"),
         Point(Signals.CLOUD_SOUNDCARD, Category.EMULATOR, "虚拟声卡 (HDA Intel/QEMU)"),
         Point(Signals.CLOUD_VM_FIRMWARE, Category.EMULATOR, "VM 固件 (DMI=QEMU / qemu_fw_cfg)"),
+        Point(Signals.CLOUD_VIRTIO, Category.EMULATOR, "virtio 半虚拟化设备中断"),
         Point(Signals.CLOUD_SENSOR_VENDOR, Category.EMULATOR, "传感器厂商=AOSP/Goldfish"),
         Point(Signals.CLOUD_INFO, Category.EMULATOR, "云机环境采集"),
         Point(Signals.EMULATOR_SELINUX_PERMISSIVE, Category.EMULATOR, "SELinux 非 enforcing"),

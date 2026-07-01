@@ -25,6 +25,7 @@ object Signals {
     const val CLOUD_NO_BATTERY = "emulator.cloud_no_battery" // /sys/class/power_supply 无 battery(HAL 假造)
     const val CLOUD_SOUNDCARD = "emulator.cloud_soundcard"   // /proc/asound/cards HDA Intel/QEMU 虚拟声卡
     const val CLOUD_VM_FIRMWARE = "emulator.cloud_vm_firmware" // DMI=QEMU / /sys/firmware 含 qemu_fw_cfg(VM 固件)
+    const val CLOUD_VIRTIO = "emulator.cloud_virtio"         // /proc/interrupts 有 virtio 半虚拟化设备中断
     const val CLOUD_SENSOR_VENDOR = "emulator.cloud_sensor_vendor" // 传感器厂商=AOSP/Goldfish(真机 BOSCH/STMicro)
     const val CLOUD_INFO = "emulator.cloud_info"             // 采集: 内核/磁盘/网卡/PCI/SoC/热区/调频(喂服务端)
 

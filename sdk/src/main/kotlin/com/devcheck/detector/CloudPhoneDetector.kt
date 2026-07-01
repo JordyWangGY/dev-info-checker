@@ -106,6 +106,13 @@ internal class CloudPhoneDetector : Detector {
             out += sig(Signals.CLOUD_SENSOR_VENDOR, Severity.MEDIUM, 0.6f, mapOf("sensor" to name, "vendor" to vendor))
         }
 
+        // 11) virtio 半虚拟化设备中断（难伪造的鲁棒性信号；真机无 virtio）
+        val irq = read(ctx, "/proc/interrupts")
+        val virtioLines = irq.lineSequence().count { it.contains("virtio") }
+        if (virtioLines > 0) {
+            out += sig(Signals.CLOUD_VIRTIO, Severity.HIGH, 0.8f, mapOf("virtio_irq_lines" to virtioLines.toString()))
+        }
+
         // 11) 采集（INFO，0 分）：真实硬件缺失面 + 汇总，喂服务端一致性复核
         val socAbsent = !File("/sys/devices/soc0").exists()
         val cpufreqAbsent = !File("/sys/devices/system/cpu/cpu0/cpufreq").exists()
@@ -120,6 +127,8 @@ internal class CloudPhoneDetector : Detector {
             "net_ifaces" to nets.joinToString(),
             "virtio_serial_ports" to vmDevs.toString(),
             "firmware" to fw.joinToString(),
+            "eth0_speed" to read(ctx, "/sys/class/net/eth0/speed"),
+            "vda_rotational" to read(ctx, "/sys/block/vda/queue/rotational"),
         ))
 
         out

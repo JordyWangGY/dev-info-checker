@@ -84,6 +84,17 @@
 
 > ⭐ `/sys/class/dmi/id/product_name = "QEMU Virtual Machine"` 与 `/sys/firmware` 里的 `qemu_fw_cfg` 是**最直接的自曝**——本机实测双双命中。
 
+### I. 补充检测点（第五轮实测）—— 边际递减，多为鲁棒性/采集
+| 检测点 | 读什么 | 判据 | 无root | 误报 | 强度 | 来源 |
+|---|---|---|---|---|---|---|
+| **virtio 中断** | `/proc/interrupts` | 含 `virtioN-config`/`virtqueues`/`req` = 半虚拟化设备；真机无 virtio | ✅ | 低 | 强(鲁棒) | ✓实测 |
+| **万兆以太网卡** | `/sys/class/net/eth0/speed` | `10000`/`1000` = 数据中心有线 NIC；手机无有线网口 | ✅ | 低 | 强 | ✓实测 |
+| Docker 网桥网关 | `/proc/net/route` | 默认网关在 `172.17.0.0/16`(Docker 默认 bridge) | ✅ | 中 | 中 | ✓实测 |
+| vda 机械盘标志 | `/sys/block/vda/queue/rotational` | `1`(机械盘)——真机闪存应为 `0` | ✅ | 中 | 中 | ✓实测 |
+| 内核↔Android 版本 | `uname -r` vs `ro.build.version.release` | Android 15 却是 `5.15-generic`(应为 6.x GKI) | ✅ | 中 | 中 | ✓实测 |
+
+> 说明：virtio 中断/万兆网卡已并入 SDK（`cloud_virtio` 计分 + `cloud_info` 采集 eth0_speed/vda_rotational）。到此**强信号空间基本挖尽**——本机在 A–I 九个方向、20+ 检测点上全面露馅；再往后多是采集类或需 root（`/proc/iomem`、`lsmod`、`/proc/config.gz`）。
+
 ## 最值得优先加入 SDK 的 Top 候选（按性价比·难伪造·无root）
 0. **DMI/VM 固件自曝**（`/sys/class/dmi/id/product_name`=QEMU、`/sys/firmware` 含 `qemu_fw_cfg`）——**最强**、几乎不可伪造、列目录/读文件即可。
 1. **内核构建串**（`/proc/version` 含 Ubuntu/gcc/-generic）——极强、难伪造、native 可读。
