@@ -15,9 +15,21 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        // 演示用 release 签名（随仓库提供的一次性 keystore，非生产密钥）。
+        // 目的：让 install.sh 默认能打「非 debuggable」的 release 包并直接安装。
+        create("release") {
+            storeFile = file("keystore/devcheck-release.jks")
+            storePassword = "devcheck"
+            keyAlias = "devcheck"
+            keyPassword = "devcheck"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
