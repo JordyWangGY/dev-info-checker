@@ -113,7 +113,8 @@
 ## 8. 现状与验证缺口（如实记录）
 
 - **批次一验证引擎已建**（`:server`）：NonceService / KeyAttestationVerifier（含 DER 解析）/ Stub PlayIntegrityVerifier / AuthoritativeScorer / DecisionSigner(ES256) / AttestService / JDK HttpServer 演示端点。`:server:test` 全通过；HttpServer 实测：`/v1/nonce` 下发 → 客户端自称 GENUINE 却带 NATIVE frida 阻断信号 → 服务端**重算判 COMPROMISED/100** 并签发可验签 Decision JWT → 同一 nonce 重放被拒。
-- **批次二已起步**：`SignalCrossChecker`（自洽性打假，融合进 `AuthoritativeScorer`）——说谎客户端（带阻断信号却自报 GENUINE）、自报分 vs 重算分不符、Widevine L1 vs SOFTWARE TEE、声称主流 ARM 机型却 x86 ABI、GMS 签名不符。已单测 + HttpServer 实测（声称 samsung 却 x86 → 服务端从 GENUINE/0 升到 LOW_RISK/35）。**不依赖真机/凭证。** 机型自洽其余规则、用 SIM 国家做 FP 复核待续。
+- **批次二已起步**：`SignalCrossChecker`（自洽性打假，融合进 `AuthoritativeScorer`）——说谎客户端（带阻断信号却自报 GENUINE）、自报分 vs 重算分不符、Widevine L1 vs SOFTWARE TEE、声称主流 ARM 机型却 x86 ABI、GMS 签名不符。**已单测 + HttpServer 实测**（声称 samsung 却 x86 → 服务端从 GENUINE/0 升到 LOW_RISK/35）。**不依赖真机/凭证。** 机型自洽其余规则、用 SIM 国家做 FP 复核待续。
+- **批次二·消费云手机信号**：`SignalCrossChecker` 现从客户端**采集为 INFO(0 分)** 的 `emulator.cloud_info` 里提取铁证——`firmware` 含 `qemu_fw_cfg` / `os_version` 为 `generic`/`ubuntu` → `xcheck.cloud_vm_selfid`(CRITICAL，真机绝不自证是 QEMU)；≥3 个 `emulator.cloud_*` 命中 → `xcheck.cloud_environment`(HIGH)。**用真云机导出的报告 HttpServer 实测**：POST 后服务端判 COMPROMISED/100，理由列出 cloud_vm_selfid + cloud_environment(10 指标)。体现「客户端计 0 分、服务端从采集证据里重判」的价值。
 - **批次三**：未开工。
 - **仍依赖真凭证 / 真机样本**（已在代码标 TODO）：① Google 硬件 attestation 根证书**固定**（`trustedRootSha256` 当前为空 → rootTrusted 恒 false）；② Play Integrity **真解码**（需 Google Cloud 项目 + 服务账号，现为 Stub）；③ **真实证书链**端到端验签（当前单测覆盖 DER 解析 + 链遍历逻辑，未用真机链跑通）。
 - 端侧目前**只在 redroid 容器验证**；`attest.play_integrity.env` 未现场触发（sample 未配 `cloudProjectNumber`）。

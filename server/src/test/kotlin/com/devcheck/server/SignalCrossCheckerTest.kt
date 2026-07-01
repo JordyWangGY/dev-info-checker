@@ -53,6 +53,28 @@ class SignalCrossCheckerTest {
     }
 
     @Test
+    fun flagsCloudVmSelfIdFromCollectedInfo() {
+        // cloud_info 是 INFO(客户端 0 分)，但 firmware 含 qemu_fw_cfg → 服务端应判 CRITICAL
+        val signals = listOf(
+            Signal(Signals.CLOUD_INFO, Category.EMULATOR, Severity.INFO, 1f, Source.JAVA,
+                mapOf("firmware" to "devicetree, qemu_fw_cfg, efi, dmi", "os_version" to "5.15.0-139-generic")),
+        )
+        val findings = SignalCrossChecker().check(bundle(Verdict.GENUINE, 0, signals), noAttest)
+        assertTrue(findings.any { it.id == "xcheck.cloud_vm_selfid" && it.severity == Severity.CRITICAL })
+    }
+
+    @Test
+    fun flagsCloudEnvironmentWhenMultipleIndicators() {
+        val signals = listOf(
+            Signal(Signals.CLOUD_KERNEL, Category.EMULATOR, Severity.HIGH, 0.85f, Source.JAVA),
+            Signal(Signals.CLOUD_PCI, Category.EMULATOR, Severity.HIGH, 0.8f, Source.JAVA),
+            Signal(Signals.CLOUD_VIRTIO, Category.EMULATOR, Severity.HIGH, 0.8f, Source.JAVA),
+        )
+        val findings = SignalCrossChecker().check(bundle(Verdict.GENUINE, 0, signals), noAttest)
+        assertTrue(findings.any { it.id == "xcheck.cloud_environment" })
+    }
+
+    @Test
     fun cleanConsistentReportHasNoFindings() {
         val signals = listOf(
             Signal(Signals.FP_ATTRIBUTES, Category.FINGERPRINT, Severity.INFO, 1f, Source.JAVA,

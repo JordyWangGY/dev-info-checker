@@ -63,6 +63,20 @@ class SignalCrossChecker(
             out += Finding("xcheck.gms_sig_mismatch", Severity.HIGH, "vending signature not Google-official")
         }
 
+        // 6) 云手机/容器：客户端把 cloud_info 采集为 INFO(0 分)，但其证据里藏着铁证。
+        //    真机绝不会「自证」是 QEMU/generic 内核，故这里据采集证据服务端重判：
+        val fw = ev(Signals.CLOUD_INFO, "firmware").orEmpty().lowercase()
+        val osv = ev(Signals.CLOUD_INFO, "os_version").orEmpty().lowercase()
+        if (fw.contains("qemu_fw_cfg") || osv.contains("generic") || osv.contains("ubuntu") || osv.contains("-lv")) {
+            out += Finding("xcheck.cloud_vm_selfid", Severity.CRITICAL,
+                "VM/容器自曝: firmware=$fw os_version=$osv（真机不可能出现）")
+        }
+        // 云机指标叠加：多个 emulator.cloud_* 命中 = 强环境证据（单条可能边缘误报，故要求计数）
+        val cloudHits = signals.count { it.id.startsWith("emulator.cloud_") && it.severity != Severity.INFO }
+        if (cloudHits >= 3) {
+            out += Finding("xcheck.cloud_environment", Severity.HIGH, "$cloudHits 个云手机/容器指标命中")
+        }
+
         return out
     }
 }
