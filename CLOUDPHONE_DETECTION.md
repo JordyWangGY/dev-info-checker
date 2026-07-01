@@ -51,14 +51,28 @@
 - `/proc/cmdline` 里的 `androidboot.redroid_*`：**shell 都 Permission denied**，App 更读不到 → 不可用（web 声称可读，实测否定）。
 - 传感器数量/相机数：redroid 注入假传感器(本机 69 个)/假相机(1 个) → 数量不构成 tell。
 
+### F. 补充检测点（第二轮实测，均无 root 可读）
+| 检测点 | 读什么 | 判据 | 无root | 误报 | 强度 | 来源 |
+|---|---|---|---|---|---|---|
+| 网络接口异常 | `/sys/class/net`（列目录） | 只有 `eth0`+`lo`，**无 `wlan0`/`rmnet_data*`/`ccmni*`** = 数据中心网卡；真机有 WiFi/蜂窝接口 | ✅ | 低 | **强** | ✓实测 |
+| sysfs 无电池 | `/sys/class/power_supply/`（列目录） | **空/无 `battery`**，但 framework `BatteryManager` 却报电量/温度 = HAL 假造电池（矛盾） | ✅ | 低 | **强** | ✓实测 |
+| 无 SoC 节点 | `/sys/devices/soc0/`（`machine`/`soc_id`/`serial_number`） | 缺失 = 非真实高通 SoC（对声称高通机型） | ✅ | 中(仅高通) | 强 | ✓实测 |
+| 无 CPU 调频 | `/sys/devices/system/cpu/cpu0/cpufreq/scaling_*` | 不存在 = 无真实 DVFS（宿主管频） | ✅ | 中 | 中强 | ✓实测 |
+| 无序列号 | `ro.serialno`/`ro.boot.serialno`、`Build.getSerial()` | 空 | ✅ | 中(隐私设置) | 中 | ✓实测 |
+| 构建主机串 | `ro.build.host`/`ro.build.user` | k8s 构建 pod 名(`pangu-build-…-s9vkd-rlxnj-p3rhm`)、`builder` 等 CI 特征 | ✅ | 中(可能撞真 OEM CI) | 中/采集 | ✓实测 |
+| 内存/开机时间 | `/proc/meminfo` MemTotal、`/proc/uptime`、`/proc/stat` btime | 与机型标称 RAM 不符 / 供服务端聚类 | ✅(采集) | — | 服务端 | ✓实测 |
+| 二进制翻译库 | `/proc/self/maps` | 含 `libhoudini`/`libndk_translation` = **x86 云机**跑 ARM 应用（本机为 ARM，未命中） | ✅ | 低 | 中(仅 x86 云机) | ✓web/实测(阴性) |
+
 ## 最值得优先加入 SDK 的 Top 候选（按性价比·难伪造·无root）
 1. **内核构建串**（`/proc/version` 含 Ubuntu/gcc/-generic）——极强、难伪造、native 可读。
 2. **虚拟磁盘布局**（`/proc/partitions`：vda/sr0/loop 泛滥、无 mmcblk/UFS）——强、难伪造。
 3. **虚拟输入设备**（`/proc/bus/input/devices`：QEMU/Virtual，无真实触屏驱动）——强。
 4. **systemd cgroup**（`/proc/self/cgroup` 含 systemd）——强。
 5. **GPU 虚拟化渲染器串补全**（virgl/Venus/zink/llvmpipe；SwiftShader 已覆盖）——强，需宿主在 GL/Vulkan 上下文取串。
-6. **无存储/SoC 序列号**（`/sys/block/mmcblk0/device/serial`、`/sys/devices/soc0/serial_number` 缺失）——中强（⚠️先在真机验证路径可读性）。
-7. CPU implementer↔机型矛盾、无热区、无基带——中强，作补充计分。
+6. **网络接口异常**（`/sys/class/net` 只有 `eth0`、无 `wlan0`/`rmnet`）——强、难伪造、列目录即可。
+7. **sysfs 无电池**（`/sys/class/power_supply` 空 vs framework 报电量）——强、难伪造。
+8. **无 SoC 节点 / 无存储序列号**（`/sys/devices/soc0/`、`/sys/block/mmcblk0/device/serial` 缺失）——中强（⚠️先在真机验证路径可读性）。
+9. 无 CPU 调频、CPU implementer↔机型矛盾、无热区、无基带、无序列号——中强，作补充计分。
 
 > 与现有实现关系：GPU-SwiftShader、SELinux 上下文、传感器零方差、生态一致性、Key Attestation/Play Integrity 已覆盖；上面 1–4、6、7 均为**增量**。全部建议**仅计分**（ARM 云机上单条都可能被针对性伪造，靠多信号叠加 + 服务端一致性）。
 
