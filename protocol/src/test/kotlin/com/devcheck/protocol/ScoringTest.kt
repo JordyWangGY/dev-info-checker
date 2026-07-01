@@ -91,7 +91,7 @@ class ScoringTest {
         listOf(
             Signals.CLOUD_KERNEL, Signals.CLOUD_DISK, Signals.CLOUD_PCI, Signals.CLOUD_INPUT,
             Signals.CLOUD_CGROUP, Signals.CLOUD_NET, Signals.CLOUD_NO_BATTERY,
-            Signals.CLOUD_SOUNDCARD, Signals.CLOUD_INFO,
+            Signals.CLOUD_SOUNDCARD, Signals.CLOUD_VM_FIRMWARE, Signals.CLOUD_SENSOR_VENDOR, Signals.CLOUD_INFO,
         ).forEach { assertFalse(it in Blockers.IDS, "$it 不应是阻断点") }
 
         // 单独一个品牌不符(HIGH) 远不到 COMPROMISED

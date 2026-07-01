@@ -73,7 +73,19 @@
 | **Build 属性自相矛盾** | `ro.build.tags`/`flavor`/`ro.*.build.tags` 跨分区 | fingerprint 称 `user/release-keys` 却泄露 `userdebug`/`eng.*`/`test-keys`/`redroid_arm64_only` | ✅ | 低 | **强** | ✓实测 |
 | 显示无 EDID | `dumpsys display` `deviceProductInfo` | `null`(虚拟显示无 EDID 产品信息) | ⚠️需宿主查 | 中 | 弱中 | ✓实测 |
 
+### H. 补充检测点（第四轮实测，均无 root 可读）—— 含最强的「自曝」证据
+| 检测点 | 读什么 | 判据 | 无root | 误报 | 强度 | 来源 |
+|---|---|---|---|---|---|---|
+| **DMI 自曝 QEMU** | `/sys/class/dmi/id/sys_vendor`\|`product_name` | =`QEMU`/`QEMU Virtual Machine`/云厂商；且真 ARM 手机**根本无 `/sys/class/dmi/`** | ✅ | 极低 | **极强** | ✓实测 |
+| **VM 固件接口** | `/sys/firmware/`（列目录） | 含 `qemu_fw_cfg`/`dmi`/`acpi`/`efi`；真 ARM 手机只有 `devicetree`/`fdt` | ✅ | 低 | **极强** | ✓实测 |
+| **virtio 串口/serial** | `/dev` 列目录 | `vport*`(virtio-console)、成排 `ttyS0..31` | ✅ | 低 | 强 | ✓实测 |
+| **传感器厂商=AOSP** | `SensorManager.getSensorList` → `Sensor.getVendor()` | 核心传感器 vendor=`AOSP`/`Goldfish`/`Android Open Source`；真机=BOSCH/STMicro/InvenSense | ✅(框架 API) | 低 | 强 | ✓web/实测(部分 AOSP) |
+| **overlay/fuse 挂载泛滥** | `/proc/self/mountinfo` | 大量 `overlay`(容器层叠)+`fuse`；真机 /data=f2fs、/system=erofs | ✅ | 中 | 中强 | ✓实测 |
+
+> ⭐ `/sys/class/dmi/id/product_name = "QEMU Virtual Machine"` 与 `/sys/firmware` 里的 `qemu_fw_cfg` 是**最直接的自曝**——本机实测双双命中。
+
 ## 最值得优先加入 SDK 的 Top 候选（按性价比·难伪造·无root）
+0. **DMI/VM 固件自曝**（`/sys/class/dmi/id/product_name`=QEMU、`/sys/firmware` 含 `qemu_fw_cfg`）——**最强**、几乎不可伪造、列目录/读文件即可。
 1. **内核构建串**（`/proc/version` 含 Ubuntu/gcc/-generic）——极强、难伪造、native 可读。
 2. **虚拟磁盘布局**（`/proc/partitions`：vda/sr0/loop 泛滥、无 mmcblk/UFS）——强、难伪造。
 3. **虚拟输入设备**（`/proc/bus/input/devices`：QEMU/Virtual，无真实触屏驱动）——强。

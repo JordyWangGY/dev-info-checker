@@ -1,5 +1,8 @@
 package com.devcheck.detector
 
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorManager
 import com.devcheck.protocol.Category
 import com.devcheck.protocol.Severity
 import com.devcheck.protocol.Signal
@@ -84,10 +87,30 @@ internal class CloudPhoneDetector : Detector {
             out += sig(Signals.CLOUD_SOUNDCARD, Severity.MEDIUM, 0.6f, mapOf("markers" to soundHits.joinToString()))
         }
 
-        // 9) 采集（INFO，0 分）：真实硬件缺失面 + 汇总，喂服务端一致性复核
+        // 9) VM 固件：真 ARM 手机无 DMI/无 qemu_fw_cfg；DMI 厂商=QEMU/云厂商 或 firmware 含 qemu_fw_cfg
+        val dmiVendor = read(ctx, "/sys/class/dmi/id/sys_vendor")
+        val dmiProduct = read(ctx, "/sys/class/dmi/id/product_name")
+        val fw = File("/sys/firmware").list()?.toList().orEmpty()
+        val dmiBlob = "$dmiVendor $dmiProduct".lowercase()
+        val vmVendors = listOf("qemu", "google", "amazon", "alibaba", "tencent", "huawei cloud", "microsoft", "vmware", "virtualbox", "oracle", "bochs", "kvm")
+        val dmiHit = vmVendors.any { dmiBlob.contains(it) } || dmiBlob.contains("virtual")
+        if (fw.contains("qemu_fw_cfg") || dmiHit) {
+            out += sig(Signals.CLOUD_VM_FIRMWARE, Severity.HIGH, 0.85f, mapOf(
+                "dmi_vendor" to dmiVendor, "dmi_product" to dmiProduct,
+                "firmware" to fw.joinToString().ifEmpty { "<none>" },
+            ))
+        }
+
+        // 10) 传感器厂商：模拟器/云机用 AOSP 默认传感器 HAL；真机是 BOSCH/STMicro/InvenSense 等
+        sensorVendorAnomaly(ctx)?.let { (name, vendor) ->
+            out += sig(Signals.CLOUD_SENSOR_VENDOR, Severity.MEDIUM, 0.6f, mapOf("sensor" to name, "vendor" to vendor))
+        }
+
+        // 11) 采集（INFO，0 分）：真实硬件缺失面 + 汇总，喂服务端一致性复核
         val socAbsent = !File("/sys/devices/soc0").exists()
         val cpufreqAbsent = !File("/sys/devices/system/cpu/cpu0/cpufreq").exists()
         val thermalAbsent = File("/sys/class/thermal").list()?.none { it.startsWith("thermal_zone") } ?: true
+        val vmDevs = File("/dev").list()?.count { it.startsWith("vport") || it.startsWith("hvc") } ?: 0
         out += sig(Signals.CLOUD_INFO, Severity.INFO, 1f, mapOf(
             "os_version" to (System.getProperty("os.version") ?: ""),
             "soc0_absent" to socAbsent.toString(),
@@ -95,9 +118,26 @@ internal class CloudPhoneDetector : Detector {
             "thermal_absent" to thermalAbsent.toString(),
             "pci_count" to pci.size.toString(),
             "net_ifaces" to nets.joinToString(),
+            "virtio_serial_ports" to vmDevs.toString(),
+            "firmware" to fw.joinToString(),
         ))
 
         out
+    }
+
+    /** 核心物理传感器(加速度/陀螺/磁力)的 vendor 若是 AOSP/Goldfish 默认 HAL → 伪造。返回 (名, 厂商)。 */
+    private fun sensorVendorAnomaly(ctx: DetectContext): Pair<String, String>? {
+        val sm = ctx.app.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return null
+        val types = listOf(Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_MAGNETIC_FIELD)
+        for (t in types) {
+            val s = sm.getDefaultSensor(t) ?: continue
+            val vendor = s.vendor.orEmpty()
+            val low = vendor.lowercase()
+            if (low.contains("aosp") || low.contains("goldfish") || low.contains("android open source") || low.contains("ranchu")) {
+                return s.name to vendor
+            }
+        }
+        return null
     }
 
     private fun read(ctx: DetectContext, path: String): String {
