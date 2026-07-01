@@ -63,18 +63,31 @@
 | 内存/开机时间 | `/proc/meminfo` MemTotal、`/proc/uptime`、`/proc/stat` btime | 与机型标称 RAM 不符 / 供服务端聚类 | ✅(采集) | — | 服务端 | ✓实测 |
 | 二进制翻译库 | `/proc/self/maps` | 含 `libhoudini`/`libndk_translation` = **x86 云机**跑 ARM 应用（本机为 ARM，未命中） | ✅ | 低 | 中(仅 x86 云机) | ✓web/实测(阴性) |
 
+### G. 补充检测点（第三轮实测，均无 root 可读）
+| 检测点 | 读什么 | 判据 | 无root | 误报 | 强度 | 来源 |
+|---|---|---|---|---|---|---|
+| **PCI 总线** | `/sys/bus/pci/devices`（列目录）/`/proc/bus/pci` | 非空(`0000:00:0x.0`) = 有 PCI 总线；**真 ARM 手机无 PCI**(用 platform/AMBA)，PCI=QEMU/服务器 | ✅ | 低 | **强** | ✓实测 |
+| **虚拟声卡** | `/proc/asound/cards` | `HDA Intel`/`QEMU`/virtio；真 ARM 手机是 qcom/WCD 编解码器 | ✅ | 低 | **强** | ✓实测 |
+| **/data 挂在宿主 LVM** | `/proc/self/mountinfo` 的 `/data` 行 | 源为 `/dev/mapper/ubuntu--vg-*`、路径含 `redroid`/`9p`/`virtiofs`/`overlay`；真机是 `bootdevice/by-name/userdata`(f2fs) | ✅ | 低 | **强** | ✓实测 |
+| **CPU 同构(无 big.LITTLE)** | `/proc/cpuinfo` 各核 `CPU part`/BogoMIPS | 所有核 part 全同(且 `0x000` 无效)=无大小核；真旗舰是异构多簇 | ✅ | 中(入门机可能同构) | 中强 | ✓实测 |
+| **Build 属性自相矛盾** | `ro.build.tags`/`flavor`/`ro.*.build.tags` 跨分区 | fingerprint 称 `user/release-keys` 却泄露 `userdebug`/`eng.*`/`test-keys`/`redroid_arm64_only` | ✅ | 低 | **强** | ✓实测 |
+| 显示无 EDID | `dumpsys display` `deviceProductInfo` | `null`(虚拟显示无 EDID 产品信息) | ⚠️需宿主查 | 中 | 弱中 | ✓实测 |
+
 ## 最值得优先加入 SDK 的 Top 候选（按性价比·难伪造·无root）
 1. **内核构建串**（`/proc/version` 含 Ubuntu/gcc/-generic）——极强、难伪造、native 可读。
 2. **虚拟磁盘布局**（`/proc/partitions`：vda/sr0/loop 泛滥、无 mmcblk/UFS）——强、难伪造。
 3. **虚拟输入设备**（`/proc/bus/input/devices`：QEMU/Virtual，无真实触屏驱动）——强。
 4. **systemd cgroup**（`/proc/self/cgroup` 含 systemd）——强。
 5. **GPU 虚拟化渲染器串补全**（virgl/Venus/zink/llvmpipe；SwiftShader 已覆盖）——强，需宿主在 GL/Vulkan 上下文取串。
-6. **网络接口异常**（`/sys/class/net` 只有 `eth0`、无 `wlan0`/`rmnet`）——强、难伪造、列目录即可。
-7. **sysfs 无电池**（`/sys/class/power_supply` 空 vs framework 报电量）——强、难伪造。
-8. **无 SoC 节点 / 无存储序列号**（`/sys/devices/soc0/`、`/sys/block/mmcblk0/device/serial` 缺失）——中强（⚠️先在真机验证路径可读性）。
-9. 无 CPU 调频、CPU implementer↔机型矛盾、无热区、无基带、无序列号——中强，作补充计分。
+6. **PCI 总线存在**（`/sys/bus/pci/devices` 非空）——强、难伪造、列目录即可（手机无 PCI）。
+7. **虚拟声卡 / /data 挂宿主 LVM**（`/proc/asound/cards`=HDA Intel、mountinfo /data 源含 ubuntu-vg/redroid）——强。
+8. **网络接口异常**（`/sys/class/net` 只有 `eth0`、无 `wlan0`/`rmnet`）——强、难伪造、列目录即可。
+9. **sysfs 无电池**（`/sys/class/power_supply` 空 vs framework 报电量）——强、难伪造。
+10. **Build 属性自相矛盾**（release-keys 却泄露 userdebug/eng/test-keys/redroid）——强。
+11. **无 SoC 节点 / 无存储序列号**（`/sys/devices/soc0/`、`/sys/block/mmcblk0/device/serial` 缺失）——中强（⚠️先在真机验证路径可读性）。
+12. 无 CPU 调频、CPU 同构(无大小核)、implementer↔机型矛盾、无热区、无基带、无序列号——中强，作补充计分。
 
-> 与现有实现关系：GPU-SwiftShader、SELinux 上下文、传感器零方差、生态一致性、Key Attestation/Play Integrity 已覆盖；上面 1–4、6、7 均为**增量**。全部建议**仅计分**（ARM 云机上单条都可能被针对性伪造，靠多信号叠加 + 服务端一致性）。
+> 与现有实现关系：GPU-SwiftShader、SELinux 上下文、传感器零方差、生态一致性、Key Attestation/Play Integrity 已覆盖；上面绝大多数为**增量**。全部建议**仅计分**（ARM 云机上单条都可能被针对性伪造，靠多信号叠加 + 服务端一致性）。
 
 ## 待办（速率限制导致未竟）
 - deep-research 的合成/验证未跑完（12:20 重置）；本文的 ⚠️待验 项需补一轮核实 + 真机验证路径可读性与误报。
